@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'dart:convert';
 import '../Assets/app_colors.dart';
 import '../Models/user_model.dart';
 import '../Services/database_service.dart';
@@ -20,9 +21,9 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _bioController;
-  late TextEditingController _photoUrlController;
   File? _selectedImageFile;
   bool _isLoading = false;
+  bool _isEncodingImage = false;
   String? _errorMessage;
 
   @override
@@ -30,22 +31,63 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.initState();
     _nameController = TextEditingController(text: widget.user.name);
     _bioController = TextEditingController(text: widget.user.bio ?? '');
-    _photoUrlController = TextEditingController(text: widget.user.photoUrl ?? '');
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _bioController.dispose();
-    _photoUrlController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickImageFromGallery() async {
+  void _showImageSourceSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('Take a Photo'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
     try {
       final ImagePicker picker = ImagePicker();
       final XFile? pickedFile = await picker.pickImage(
-        source: ImageSource.gallery,
+        source: source,
         imageQuality: 80,
         maxWidth: 800,
         maxHeight: 800,
@@ -57,33 +99,34 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         });
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Error picking image: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error picking image: $e';
+        });
+      }
     }
   }
 
-  Future<String?> _uploadImageToFirebase() async {
-    if (_selectedImageFile == null) {
-      return null;
-    }
+  Future<String?> _convertImageToBase64() async {
+    if (_selectedImageFile == null) return null;
+
+    setState(() => _isEncodingImage = true);
 
     try {
-      // For now, we'll return a placeholder URL
-      // In production, you would upload to Firebase Storage
-      // Example: 
-      // final ref = FirebaseStorage.instance.ref(
-      //     'user_profiles/${widget.user.uid}/profile_image.jpg');
-      // await ref.putFile(_selectedImageFile!);
-      // return await ref.getDownloadURL();
-      
-      // For demo, we'll just return the file path as a data URL
-      return _selectedImageFile!.path;
+      final bytes = await _selectedImageFile!.readAsBytes();
+      final base64String = base64Encode(bytes);
+      return base64String;
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Error uploading image: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error processing image: $e';
+        });
+      }
       return null;
+    } finally {
+      if (mounted) {
+        setState(() => _isEncodingImage = false);
+      }
     }
   }
 
@@ -96,7 +139,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       final name = _nameController.text.trim();
       final bio = _bioController.text.trim();
-      var photoUrl = _photoUrlController.text.trim();
 
       if (name.isEmpty) {
         setState(() {
@@ -106,19 +148,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         return;
       }
 
-      // Upload image if selected
+      // Convert image to Base64 string if a new one was selected
+      String? photoUrl = widget.user.photoUrl;
       if (_selectedImageFile != null) {
-        final uploadedUrl = await _uploadImageToFirebase();
-        if (uploadedUrl != null) {
-          photoUrl = uploadedUrl;
+        final base64Image = await _convertImageToBase64();
+        if (base64Image != null) {
+          photoUrl = base64Image;
         }
       }
 
-      // Update profile in Firebase and local storage
+      // Update profile in Firebase and sync to local storage
       final updatedUser = await DatabaseService().updateUserProfile(
         name: name,
         bio: bio.isNotEmpty ? bio : null,
-        photo: photoUrl.isNotEmpty ? photoUrl : null,
+        photo: photoUrl,
       );
 
       if (mounted) {
@@ -128,7 +171,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             duration: Duration(seconds: 2),
           ),
         );
-        // Pop back to profile screen with updated user
         Navigator.of(context).pop(updatedUser);
       }
     } catch (e) {
@@ -152,7 +194,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Profile Picture Preview
+            // Profile Picture
             Center(
               child: Stack(
                 children: [
@@ -167,39 +209,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         width: 2,
                       ),
                     ),
-                    child: _selectedImageFile != null
-                        ? ClipOval(
-                            child: Image.file(
-                              _selectedImageFile!,
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : widget.user.photoUrl != null && widget.user.photoUrl!.isNotEmpty
-                            ? ClipOval(
-                                child: Image.network(
-                                  widget.user.photoUrl!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Icon(
-                                      Icons.person,
-                                      size: 50,
-                                      color: AppColors.primaryDark,
-                                    );
-                                  },
-                                ),
-                              )
-                            : Icon(
-                                Icons.person,
-                                size: 50,
-                                color: AppColors.primaryDark,
-                              ),
+                    child: _buildAvatarContent(),
                   ),
-                  // Camera button
+                  // Camera / edit button
                   Positioned(
                     bottom: 0,
                     right: 0,
                     child: GestureDetector(
-                      onTap: _pickImageFromGallery,
+                      onTap: _isLoading ? null : _showImageSourceSheet,
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -210,20 +227,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             width: 2,
                           ),
                         ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          color: AppColors.white,
-                          size: 20,
-                        ),
+                        child: _isEncodingImage
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.white,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.camera_alt,
+                                color: AppColors.white,
+                                size: 20,
+                              ),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 8),
+            const Center(
+              child: Text(
+                'Tap camera icon to change photo',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ),
             const SizedBox(height: 24),
+
             // Error Message
-            if (_errorMessage != null)
+            if (_errorMessage != null) ...[
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
@@ -237,7 +271,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   style: const TextStyle(color: Colors.red),
                 ),
               ),
-            if (_errorMessage != null) const SizedBox(height: 16),
+              const SizedBox(height: 16),
+            ],
+
             // Name Field
             Text(
               'Name',
@@ -263,6 +299,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
             const SizedBox(height: 20),
+
             // Bio Field
             Text(
               'Bio (Optional)',
@@ -289,7 +326,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
             const SizedBox(height: 32),
-            // Update Button
+
+            // Save Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -298,14 +336,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Text('Save Changes'),
               ),
             ),
             const SizedBox(height: 12),
+
             // Cancel Button
             SizedBox(
               width: double.infinity,
@@ -317,6 +354,66 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildAvatarContent() {
+    // Show newly selected local file first
+    if (_selectedImageFile != null) {
+      return ClipOval(
+        child: Image.file(
+          _selectedImageFile!,
+          fit: BoxFit.cover,
+          width: 100,
+          height: 100,
+        ),
+      );
+    }
+
+    final photoUrl = widget.user.photoUrl;
+    if (photoUrl != null && photoUrl.isNotEmpty) {
+      // Base64 string: decode and display with Image.memory
+      if (!photoUrl.startsWith('http')) {
+        try {
+          final bytes = base64Decode(photoUrl);
+          return ClipOval(
+            child: Image.memory(
+              bytes,
+              fit: BoxFit.cover,
+              width: 100,
+              height: 100,
+              errorBuilder: (context, error, stackTrace) => Icon(
+                Icons.person,
+                size: 50,
+                color: AppColors.primaryDark,
+              ),
+            ),
+          );
+        } catch (_) {
+          // Fall through to default icon if decoding fails
+        }
+      } else {
+        // Regular URL
+        return ClipOval(
+          child: Image.network(
+            photoUrl,
+            fit: BoxFit.cover,
+            width: 100,
+            height: 100,
+            errorBuilder: (context, error, stackTrace) => Icon(
+              Icons.person,
+              size: 50,
+              color: AppColors.primaryDark,
+            ),
+          ),
+        );
+      }
+    }
+
+    return Icon(
+      Icons.person,
+      size: 50,
+      color: AppColors.primaryDark,
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert'; // ← needed for base64Decode
 import '../Assets/app_colors.dart';
 import '../Models/user_model.dart';
 import '../Services/database_service.dart';
@@ -28,22 +29,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final user = await DatabaseService().getUserFromLocalStorage();
       if (user != null) {
-        // Fetch achievement count
         final achievementCount = await DatabaseService().getAchievementCount();
-        
         setState(() {
           _user = user;
           _achievementCount = achievementCount;
           _isLoading = false;
         });
       } else {
-        // No user found, redirect to login
         if (mounted) {
           Navigator.of(context).pushReplacementNamed('/login');
         }
       }
     } catch (e) {
-      // Error loading user, redirect to login
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/login');
       }
@@ -52,9 +49,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _logout() async {
     try {
-      // Clear local storage
       await DatabaseService().clearLocalStorage();
-      // Sign out from Firebase
       await FirebaseAuth.instance.signOut();
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/login');
@@ -74,16 +69,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return DateFormat('MMM dd, yyyy').format(date);
   }
 
+  // ✅ Converts Base64 string back to image widget
+  Widget _buildProfileAvatar() {
+    final photoUrl = _user.photoUrl;
+
+    // No photo set → show default icon
+    if (photoUrl == null || photoUrl.isEmpty) {
+      return Icon(Icons.person, size: 50, color: AppColors.primaryDark);
+    }
+
+    // Base64 string (not a URL) → decode bytes → Image.memory
+    if (!photoUrl.startsWith('http')) {
+      try {
+        final bytes = base64Decode(photoUrl); // decode Base64 to Uint8List
+        return ClipOval(
+          child: Image.memory(
+            bytes,
+            fit: BoxFit.cover,
+            width: 100,
+            height: 100,
+            errorBuilder: (_, __, ___) =>
+                Icon(Icons.person, size: 50, color: AppColors.primaryDark),
+          ),
+        );
+      } catch (_) {
+        return Icon(Icons.person, size: 50, color: AppColors.primaryDark);
+      }
+    }
+
+    // Regular http URL → Image.network
+    return ClipOval(
+      child: Image.network(
+        photoUrl,
+        fit: BoxFit.cover,
+        width: 100,
+        height: 100,
+        errorBuilder: (_, __, ___) =>
+            Icon(Icons.person, size: 50, color: AppColors.primaryDark),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Profile'),
-        ),
-        body: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        appBar: AppBar(title: const Text('Profile')),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -96,9 +128,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Logout',
-            onPressed: () {
-              _showLogoutConfirmation();
-            },
+            onPressed: _showLogoutConfirmation,
           ),
         ],
       ),
@@ -106,7 +136,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Profile Header Section
+            // ── Profile Header ──────────────────────────────
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -120,40 +150,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
                   children: [
-                    // Profile Avatar
+                    // Avatar — calls _buildProfileAvatar()
                     Container(
                       width: 100,
                       height: 100,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: AppColors.white,
-                        border: Border.all(
-                          color: AppColors.white,
-                          width: 3,
-                        ),
+                        border: Border.all(color: AppColors.white, width: 3),
                       ),
-                      child: _user.photoUrl != null && _user.photoUrl!.isNotEmpty
-                          ? ClipOval(
-                              child: Image.network(
-                                _user.photoUrl!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Icon(
-                                    Icons.person,
-                                    size: 50,
-                                    color: AppColors.primaryDark,
-                                  );
-                                },
-                              ),
-                            )
-                          : Icon(
-                              Icons.person,
-                              size: 50,
-                              color: AppColors.primaryDark,
-                            ),
+                      child: _buildProfileAvatar(), // ← renders Base64 image
                     ),
                     const SizedBox(height: 16),
-                    // User Name
                     Text(
                       _user.name,
                       style: const TextStyle(
@@ -163,59 +171,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    // Email
                     Text(
                       _user.email,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.white,
-                      ),
+                      style: const TextStyle(fontSize: 14, color: AppColors.white),
                     ),
                   ],
                 ),
               ),
             ),
+
             const SizedBox(height: 24),
-            // Profile Details Section
+
+            // ── Profile Details ──────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Bio Section
-                  if (_user.bio != null && _user.bio!.isNotEmpty)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Bio',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primaryText,
-                              ),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            color: AppColors.background,
-                            border: Border.all(
-                              color: AppColors.primaryDark.withOpacity(0.2),
-                            ),
+                  // Bio
+                  if (_user.bio != null && _user.bio!.isNotEmpty) ...[
+                    Text(
+                      'Bio',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryText,
                           ),
-                          child: Text(
-                            _user.bio!,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: AppColors.secondaryText,
-                                ),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                      ],
                     ),
-                  // Achievements Section
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: AppColors.background,
+                        border: Border.all(
+                          color: AppColors.primaryDark.withOpacity(0.2),
+                        ),
+                      ),
+                      child: Text(
+                        _user.bio!,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppColors.secondaryText,
+                            ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // Achievements
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
@@ -235,11 +238,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     child: Column(
                       children: [
-                        Icon(
-                          Icons.emoji_events,
-                          size: 40,
-                          color: AppColors.primaryDark,
-                        ),
+                        Icon(Icons.emoji_events, size: 40, color: AppColors.primaryDark),
                         const SizedBox(height: 8),
                         Text(
                           'Achievements',
@@ -259,7 +258,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  // Account Information Section
+
+                  // Details
                   Text(
                     'Details',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -268,20 +268,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                   ),
                   const SizedBox(height: 16),
-                  // UID
                   _buildInfoTile(
                     icon: Icons.badge,
                     label: 'Bio',
-                    value: _user.bio == "" ? 'No bio available' : _user.bio!
+                    value: (_user.bio == null || _user.bio!.isEmpty)
+                        ? 'No bio available'
+                        : _user.bio!,
                   ),
                   const SizedBox(height: 12),
-                  // Last Updated
                   _buildInfoTile(
                     icon: Icons.update,
                     label: 'Last Updated',
-                    value: _formatDate(_user.updatedAt == 0 ? _user.createdAt : _user.updatedAt),
+                    value: _formatDate(
+                        _user.updatedAt == 0 ? _user.createdAt : _user.updatedAt),
                   ),
                   const SizedBox(height: 24),
+
                   // Edit Profile Button
                   SizedBox(
                     width: double.infinity,
@@ -294,12 +296,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             builder: (context) => EditProfileScreen(user: _user),
                           ),
                         );
-
-                        // If user was updated, refresh the profile
                         if (updatedUser != null) {
-                          setState(() {
-                            _user = updatedUser;
-                          });
+                          setState(() => _user = updatedUser);
                         }
                       },
                     ),
@@ -325,17 +323,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         color: AppColors.background,
-        border: Border.all(
-          color: AppColors.primaryDark.withOpacity(0.2),
-        ),
+        border: Border.all(color: AppColors.primaryDark.withOpacity(0.2)),
       ),
       child: Row(
         children: [
-          Icon(
-            icon,
-            color: AppColors.primaryDark,
-            size: 20,
-          ),
+          Icon(icon, color: AppColors.primaryDark, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -365,7 +357,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: const Icon(Icons.copy),
               iconSize: 18,
               onPressed: () {
-                // TODO: Implement copy to clipboard functionality
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Copied to clipboard')),
                 );
@@ -392,10 +383,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Navigator.of(context).pop();
               _logout();
             },
-            child: const Text(
-              'Logout',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('Logout', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
