@@ -26,11 +26,11 @@
 		</data>
 		<key>Modules/FirebaseCoreInternal.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo</key>
 		<data>
-		j6M/TuGOZ4P2Ja8VkHZgD3PRC5c=
+		cirnfiigUCgO2pbLHeTlBA/PbfA=
 		</data>
 		<key>Modules/FirebaseCoreInternal.swiftmodule/Project/x86_64-apple-ios-simulator.swiftsourceinfo</key>
 		<data>
-		7zNPSI31MzoxBADsK1ql7M8Lmtg=
+		uTKoB1xsCy/DB8JiJycR6QCPVlI=
 		</data>
 		<key>Modules/FirebaseCoreInternal.swiftmodule/arm64-apple-ios-simulator.abi.json</key>
 		<data>
@@ -42,7 +42,7 @@
 		</data>
 		<key>Modules/FirebaseCoreInternal.swiftmodule/arm64-apple-ios-simulator.swiftmodule</key>
 		<data>
-		dTAg82FwMZ4gwN3KQlMgIdTwcIc=
+		+vxC+DxRNX2FwZy12gy56nHSIEQ=
 		</data>
 		<key>Modules/FirebaseCoreInternal.swiftmodule/x86_64-apple-ios-simulator.abi.json</key>
 		<data>
@@ -54,7 +54,7 @@
 		</data>
 		<key>Modules/FirebaseCoreInternal.swiftmodule/x86_64-apple-ios-simulator.swiftmodule</key>
 		<data>
-		BFK/3bBO4r1f6amW66ETcVFJuEA=
+		PFOUMjTCRoEbPeCBPDHzvq6k6JI=
 		</data>
 		<key>Modules/module.modulemap</key>
 		<data>
@@ -95,14 +95,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			lOdFdwol7HnaixljZIsRP2joYbty8GsCYQ6/VAI6/VU=
+			zS4qatq6dnxrw4vIf6f4VD6rbTMwglUWzjtQm4oZ8bs=
 			</data>
 		</dict>
 		<key>Modules/FirebaseCoreInternal.swiftmodule/Project/x86_64-apple-ios-simulator.swiftsourceinfo</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			SZ04CLYxx+bJCuTwgn48Egyx+GSSR05jC3lhrHHOSZc=
+			jW3fKahAz/ozLTI2GXrCkktrWSRfVW/cJQi6lyyMqVk=
 			</data>
 		</dict>
 		<key>Modules/FirebaseCoreInternal.swiftmodule/arm64-apple-ios-simulator.abi.json</key>
@@ -123,7 +123,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			6hHTe9ylSVfQpEh8La27VxacW5z/B5JslV6oj2I6gyE=
+			vs749+MxrTHhONnU2JYQZs0VPFQgQGYZU3vncLJaesA=
 			</data>
 		</dict>
 		<key>Modules/FirebaseCoreInternal.swiftmodule/x86_64-apple-ios-simulator.abi.json</key>
@@ -144,7 +144,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			P06A/DQ1JYNc5dfsjkEHfj4g8gJwTcvR88jnxpQGyyE=
+			n7x3rgdyVAQapHipdI6dShwK+xUhZbQ5ZklB1N4MRAM=
 			</data>
 		</dict>
 		<key>Modules/module.modulemap</key>

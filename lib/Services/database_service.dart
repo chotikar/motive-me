@@ -160,7 +160,7 @@ class DatabaseService {
   /// Update user profile in Firebase and sync to local storage
   Future<UserModel> updateUserProfile({
     String? name,
-    String? photoUrl,
+    String? photo,
     String? bio,
   }) async {
     try {
@@ -173,7 +173,7 @@ class DatabaseService {
       // Create updated user model
       final updatedUser = currentUser.copyWith(
         name: name,
-        photoUrl: photoUrl,
+        photoUrl: photo,
         bio: bio,
       );
 

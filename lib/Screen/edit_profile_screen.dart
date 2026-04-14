@@ -118,7 +118,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final updatedUser = await DatabaseService().updateUserProfile(
         name: name,
         bio: bio.isNotEmpty ? bio : null,
-        photoUrl: photoUrl.isNotEmpty ? photoUrl : null,
+        photo: photoUrl.isNotEmpty ? photoUrl : null,
       );
 
       if (mounted) {
@@ -250,31 +250,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               controller: _nameController,
               decoration: InputDecoration(
                 hintText: 'Enter your name',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(
-                    color: AppColors.primaryDark,
-                    width: 2,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            // Photo URL Field
-            Text(
-              'Photo URL (Optional)',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _photoUrlController,
-              decoration: InputDecoration(
-                hintText: 'https://example.com/photo.jpg',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
