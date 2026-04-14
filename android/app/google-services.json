@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "892879784845",
+    "firebase_url": "https://motiveme-6c8da-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "motiveme-6c8da",
+    "storage_bucket": "motiveme-6c8da.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:892879784845:android:9ccfc3650b7f8a65384bc4",
+        "android_client_info": {
+          "package_name": "com.example.motive_me"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "892879784845-rd8qsvlam5sk2drdni0nuqafm51uoh9v.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhMcuS84NdaLxwqTnwUyJUbtrtb6IFXfU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "892879784845-rd8qsvlam5sk2drdni0nuqafm51uoh9v.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
