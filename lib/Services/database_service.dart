@@ -3,8 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:motive_me/Models/user_model.dart';
 import '../Models/activity_model.dart';
-import '../Models/check_in_model.dart';
 import '../Models/achievement_model.dart';
+import '../Models/user_activity_model.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -204,21 +204,14 @@ class DatabaseService {
   }
 
   // ========== ACTIVITY ==========
-  Future<String> createActivity(Activity activity) async {
-    try {
-      final ref = _db.ref('activities').push();
-      final id = ref.key!;
+Future<String> createActivity(Activity activity) async {
+  final ref = _db.ref('activities').push();
+  final id = ref.key!;
+  final newActivity = Activity(id: id, name: activity.name, reward: activity.reward);
+  await ref.set(newActivity.toMap()); // toMap() now includes 'id'
+  return id;
+}
 
-      await _db.ref().update({
-        'activities/$id': activity.toMap()..['ownerId'] = _uid,
-        'userActivities/$_uid/$id': true,
-      });
-
-      return id;
-    } catch (e) {
-      throw Exception('Failed to create activity: $e');
-    }
-  }
 
   Stream<List<Activity>> getUserActivities() {
     return _db.ref('userActivities/$_uid').onValue.asyncMap((event) async {
@@ -281,110 +274,86 @@ class DatabaseService {
     }
   }
 
-  // ========== CHECK-IN ==========
-  Future<void> addCheckIn(String activityId, {String? note}) async {
-    try {
-      final now = DateTime.now();
-      final dateStr =
-          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  // ========== ACTIVITY ==========
 
-      final ref = _db.ref('checkIns/$activityId').push();
-      await ref.set({
-        'userId': _uid,
-        'date': dateStr,
-        'timestamp': ServerValue.timestamp,
-        'note': note,
-      });
-    } catch (e) {
-      throw Exception('Failed to add check-in: $e');
-    }
+/// Fetch all activities for suggestion chips
+Future<List<Activity>> getAllActivities() async {
+  try {
+    final snapshot = await _db.ref('activities').get();
+    if (!snapshot.exists) return [];
+    final map = Map<dynamic, dynamic>.from(snapshot.value as Map);
+    return map.entries.map((e) {
+      return Activity.fromMap(
+        e.key.toString(),
+        Map<dynamic, dynamic>.from(e.value as Map),
+      );
+    }).toList();
+  } catch (e) {
+    throw Exception('Failed to fetch activities: $e');
   }
+}
 
-  Stream<List<CheckIn>> getCheckIns(String activityId) {
-    return _db.ref('checkIns/$activityId').onValue.map((event) {
-      try {
-        if (event.snapshot.value == null) return <CheckIn>[];
+/// Custom flow: creates a brand-new Activity + UserActivity atomically
+Future<void> createSkill({
+  required String name,
+  required int reward,
+  required int goal,
+  required int startDate,
+  required int expireDate,
+}) async {
+  try {
+    // 1. Push new Activity
+    final activityRef = _db.ref('activities').push();
+    final activityId = activityRef.key!;
+    final activity = Activity(id: activityId, name: name, reward: reward);
 
-        final map = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
-        return map.entries.map((e) {
-          return CheckIn.fromMap(
-            e.key.toString(),
-            activityId,
-            Map<dynamic, dynamic>.from(e.value as Map),
-          );
-        }).toList();
-      } catch (e) {
-        throw Exception('Failed to get check-ins: $e');
-      }
+    // 2. Push new UserActivity
+    final userActivityRef = _db.ref('userActivities/$_uid').push();
+    final userActivityId = userActivityRef.key!;
+    final userActivity = UserActivity(
+      id: userActivityId,
+      activityId: activityId,
+      startDate: startDate,
+      expireDate: expireDate,
+      goal: goal,
+      count: 0,
+    );
+
+    // 3. Atomic write
+    await _db.ref().update({
+      'activities/$activityId': activity.toMap(),
+      'userActivities/$_uid/$userActivityId': userActivity.toMap(),
     });
+  } catch (e) {
+    throw Exception('Failed to create skill: $e');
   }
+}
 
-  Future<int> getCheckInCountForActivity(String activityId) async {
-    try {
-      final snapshot = await _db.ref('checkIns/$activityId').get();
-      if (snapshot.exists) {
-        return (snapshot.value as Map).length;
-      }
-      return 0;
-    } catch (e) {
-      throw Exception('Failed to get check-in count: $e');
-    }
+/// Suggestion flow: reuses existing Activity, only creates UserActivity
+Future<void> addSkillFromSuggestion({
+  required String activityId,
+  required int goal,
+  required int startDate,
+  required int expireDate,
+}) async {
+  try {
+    final ref = _db.ref('userActivities/$_uid').push();
+    final userActivityId = ref.key!;
+    final userActivity = UserActivity(
+      id: userActivityId,
+      activityId: activityId,
+      startDate: startDate,
+      expireDate: expireDate,
+      goal: goal,
+      count: 0,
+    );
+    await ref.set(userActivity.toMap());
+  } catch (e) {
+    throw Exception('Failed to add skill from suggestion: $e');
   }
-
-  Future<void> deleteCheckIn(String activityId, String checkInId) async {
-    try {
-      await _db.ref('checkIns/$activityId/$checkInId').remove();
-    } catch (e) {
-      throw Exception('Failed to delete check-in: $e');
-    }
-  }
-
-  Future<void> deleteAllCheckInsForActivity(String activityId) async {
-    try {
-      await _db.ref('checkIns/$activityId').remove();
-    } catch (e) {
-      throw Exception('Failed to delete check-ins: $e');
-    }
-  }
+}
 
   // ========== ACHIEVEMENTS ==========
-  Future<int> getAchievementCount() async {
-    try {
-      final snapshot = await _db.ref('achievements').orderByChild('uid').equalTo(_uid).get();
-      if (snapshot.exists) {
-        final data = Map<dynamic, dynamic>.from(snapshot.value as Map);
-        return data.length;
-      }
-      return 0;
-    } catch (e) {
-      // If the path doesn't exist yet, return 0
-      return 0;
-    }
-  }
-
-  Future<List<Achievement>> getUserAchievements() async {
-    try {
-      final snapshot = await _db.ref('achievements').get();
-      if (!snapshot.exists) return <Achievement>[];
-
-      final achievements = <Achievement>[];
-      final data = Map<dynamic, dynamic>.from(snapshot.value as Map);
-
-      data.forEach((key, value) {
-        final achievement = Achievement.fromMap(key, Map<dynamic, dynamic>.from(value as Map));
-        if (achievement.uid == _uid && achievement.isUnlocked) {
-          achievements.add(achievement);
-        }
-      });
-
-      // Sort by unlocked date (newest first)
-      achievements.sort((a, b) => b.unlockedAt.compareTo(a.unlockedAt));
-      return achievements;
-    } catch (e) {
-      throw Exception('Failed to get achievements: $e');
-    }
-  }
-
   Future<void> unlockAchievement(String achievementId) async {
     try {
       await _db.ref('achievements/$achievementId').update({
@@ -395,4 +364,111 @@ class DatabaseService {
       throw Exception('Failed to unlock achievement: $e');
     }
   }
+// Rules: count can only +1, only before expireDate
+// checkInDates value must be >= startDate, < expireDate, <= now
+Future<void> checkIn(String userActivityId, UserActivity current) async {
+  if (!current.canCheckIn) throw Exception('Cannot check in: expired or completed');
+
+  final now = DateTime.now().millisecondsSinceEpoch;
+  final nextIndex = current.checkInDates.length.toString();
+
+  await _db.ref('userActivities/$_uid/$userActivityId').update({
+    'count': current.count + 1,                    // +1 only
+    'checkInDates/$nextIndex': now,                // timestamp in valid range
+  });
+}
+// ========== USER ACTIVITIES (new rules) ==========
+
+/// Real-time stream of current user's UserActivities
+Stream<List<UserActivity>> streamUserActivities() {
+  return _db.ref('userActivities/$_uid').onValue.map((event) {
+    if (event.snapshot.value == null) return <UserActivity>[];
+    final map = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
+    return map.entries.map((e) {
+      return UserActivity.fromMap(
+        e.key.toString(),
+        Map<dynamic, dynamic>.from(e.value as Map),
+      );
+    }).toList();
+  });
+}
+
+// /// Check in: count +1, record timestamp in checkInDates
+// /// Firebase rules enforce: count can only +1, only before expireDate
+// Future<void> checkIn(String userActivityId, UserActivity current) async {
+//   if (current.isExpired) throw Exception('This skill has expired');
+//   if (current.isCompleted) throw Exception('This skill is already completed');
+//   //if (current.hasCheckedInToday) throw Exception('Already checked in today');
+
+//   final now = DateTime.now().millisecondsSinceEpoch;
+//   final nextIndex = current.count.toString(); // 0, 1, 2 ...
+
+//   await _db.ref('userActivities/$_uid/$userActivityId').update({
+//     'count': current.count + 1,
+//     'checkInDates/$nextIndex': now,
+//   });
+// }
+// ========== ACHIEVEMENTS ==========
+
+/// Save (or overwrite) an achievement under userAchievements/$uid/
+Future<void> saveAchievement(Achievement achievement) async {
+  try {
+    await _db
+        .ref('userAchievements/$_uid/${achievement.id}')
+        .set(achievement.toMap());
+  } catch (e) {
+    throw Exception('Failed to save achievement: $e');
+  }
+}
+
+/// Fetch all unlocked achievements for current user
+Future<List<Achievement>> getUserAchievements() async {
+  try {
+    final snapshot = await _db.ref('userAchievements/$_uid').get();
+    if (!snapshot.exists) return [];
+
+    final map = Map<dynamic, dynamic>.from(snapshot.value as Map);
+    final achievements = map.entries.map((e) {
+      return Achievement.fromMap(
+        e.key.toString(),
+        Map<dynamic, dynamic>.from(e.value as Map),
+      );
+    }).toList();
+
+    // Sort newest first
+    achievements.sort((a, b) => b.unlockedAt.compareTo(a.unlockedAt));
+    return achievements;
+  } catch (e) {
+    throw Exception('Failed to get achievements: $e');
+  }
+}
+
+/// Count achievements for current user
+Future<int> getAchievementCount() async {
+  try {
+    final snapshot = await _db.ref('userAchievements/$_uid').get();
+    if (!snapshot.exists) return 0;
+    return (snapshot.value as Map).length;
+  } catch (_) {
+    return 0;
+  }
+}
+
+// ========== ACHIEVEMENTS (local only) ==========
+
+/// Get all unlocked achievement IDs from local storage
+Future<Set<String>> getUnlockedAchievementIds() async {
+  final prefs = await SharedPreferences.getInstance();
+  final raw = prefs.getString('unlocked_achievements') ?? '';
+  if (raw.isEmpty) return {};
+  return raw.split(',').toSet();
+}
+
+/// Save a newly unlocked achievement ID to local storage
+Future<void> saveUnlockedAchievementId(String id) async {
+  final prefs = await SharedPreferences.getInstance();
+  final current = await getUnlockedAchievementIds();
+  current.add(id);
+  await prefs.setString('unlocked_achievements', current.join(','));
+}
 }

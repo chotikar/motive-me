@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:convert'; // ← needed for base64Decode
+import 'dart:convert';
 import '../Assets/app_colors.dart';
 import '../Models/user_model.dart';
 import '../Services/database_service.dart';
@@ -37,12 +37,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       } else {
         if (mounted) {
-          Navigator.of(context).pushReplacementNamed('/login');
+          routeToLogin();
         }
       }
     } catch (e) {
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/login');
+        routeToLogin();
       }
     }
   }
@@ -52,7 +52,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await DatabaseService().clearLocalStorage();
       await FirebaseAuth.instance.signOut();
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/login');
+        routeToLogin();
       }
     } catch (e) {
       if (mounted) {
@@ -63,13 +63,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+void routeToLogin() {
+   Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+}
+
   String _formatDate(int milliseconds) {
     if (milliseconds == 0) return 'Unknown';
     final date = DateTime.fromMillisecondsSinceEpoch(milliseconds);
     return DateFormat('MMM dd, yyyy').format(date);
   }
 
-  // ✅ Converts Base64 string back to image widget
   Widget _buildProfileAvatar() {
     final photoUrl = _user.photoUrl;
 
