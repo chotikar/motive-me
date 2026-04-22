@@ -367,14 +367,28 @@ Future<void> addSkillFromSuggestion({
 // Rules: count can only +1, only before expireDate
 // checkInDates value must be >= startDate, < expireDate, <= now
 Future<void> checkIn(String userActivityId, UserActivity current) async {
-  if (!current.canCheckIn) throw Exception('Cannot check in: expired or completed');
-
   final now = DateTime.now().millisecondsSinceEpoch;
+
+  // Client-side guards (mirrors Firebase rules)
+  if (now < current.startDate) {
+    throw Exception('Activity has not started yet');
+  }
+  if (current.isExpired) {
+    throw Exception('This skill has expired');
+  }
+  if (current.isCompleted) {
+    throw Exception('This skill is already completed');
+  }
+  if (current.hasCheckedInToday) {
+    throw Exception('Already checked in today');
+  }
+
+  // Append timestamp to checkInDates list using next numeric index
   final nextIndex = current.checkInDates.length.toString();
 
   await _db.ref('userActivities/$_uid/$userActivityId').update({
-    'count': current.count + 1,                    // +1 only
-    'checkInDates/$nextIndex': now,                // timestamp in valid range
+    'count': current.count + 1,
+    'checkInDates/$nextIndex': now,   // Firebase stores as { "0": ts, "1": ts, ... }
   });
 }
 // ========== USER ACTIVITIES (new rules) ==========

@@ -117,14 +117,32 @@ void routeToLogin() {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Profile')),
+        appBar: AppBar(
+           backgroundColor: AppColors.primaryDark, 
+        iconTheme: const IconThemeData(color: AppColors.white),
+        title: const Text(
+          'Profile',
+           style: TextStyle(
+            fontWeight: FontWeight.bold, // ← bold title
+            color: AppColors.white, // ← white text on dark bg
+          ),
+        ),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        backgroundColor: AppColors.primaryDark, 
+        iconTheme: const IconThemeData(color: AppColors.white),
+        title: const Text(
+          'Profile',
+           style: TextStyle(
+            fontWeight: FontWeight.bold, // ← bold title
+            color: AppColors.white, // ← white text on dark bg
+          ),
+        ),
         centerTitle: true,
         elevation: 0,
         actions: [

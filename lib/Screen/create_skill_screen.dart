@@ -175,7 +175,15 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Skill'),
+        backgroundColor: AppColors.primaryDark, 
+        iconTheme: const IconThemeData(color: AppColors.white),
+        title: const Text(
+          'Add Skill',
+           style: TextStyle(
+            fontWeight: FontWeight.bold, // ← bold title
+            color: AppColors.white, // ← white text on dark bg
+          ),
+          ),
         centerTitle: true,
         elevation: 0,
       ),
@@ -229,7 +237,7 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
               const SizedBox(height: 16),
 
               // ── Reward ───────────────────────────────────
-              _label('Reward (points)'),
+              _label('Reward point per time'),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _rewardController,
@@ -250,7 +258,6 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
               ),
               const SizedBox(height: 16),
 
-              // ── Goal ─────────────────────────────────────
               _label('Goal'),
               const SizedBox(height: 8),
               TextFormField(

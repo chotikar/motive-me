@@ -119,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _isLoading = false;
         });
         await _loadAchievements();
-        _startSkillsStream();
+         _startSkillsStream();
       } else {
         if (mounted) routeToLoginScreen();
       }
@@ -342,14 +342,31 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Motive Me')),
+        appBar: AppBar(
+          backgroundColor: AppColors.primaryDark,
+          title: const Text(
+            'Motive Me',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppColors.white,
+            ),
+          ),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Motive Me'),
+        backgroundColor: AppColors.primaryDark,
+        iconTheme: const IconThemeData(color: AppColors.white),
+        title: const Text(
+          'Motive Me',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppColors.white,
+          ),
+        ),
         centerTitle: false,
         elevation: 0,
         actions: [
@@ -367,8 +384,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: IconButton(
               icon: _buildProfileAvatar(),
               tooltip: 'Profile',
-              onPressed: () =>
-                  Navigator.pushNamed(context, '/profile'),
+              onPressed: () => Navigator.pushNamed(context, '/profile'),
             ),
           ),
         ],
@@ -508,20 +524,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedNavIndex,
-        onTap: _onNavItemTapped,
-        items: const [
-          BottomNavigationBarItem(
-              icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.show_chart), label: 'Progress'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.emoji_events), label: 'Achievements'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.settings), label: 'Settings'),
-        ],
-      ),
     );
   }
 
@@ -575,7 +577,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final isExpired = ua.isExpired;
     final isCompleted = ua.isCompleted;
-    final checkedInToday = true;//ua.hasCheckedInToday; // ← correct, NOT hardcoded
+    final now = DateTime.now();
+    // Check if any timestamp in checkInDates matches today's date
+    final checkedInToday = ua.checkInDates.any((ts) {
+      final d = DateTime.fromMillisecondsSinceEpoch(ts);
+      return d.year == now.year && d.month == now.month && d.day == now.day;
+    });
     final canCheckIn = ua.canCheckIn;
 
     final int totalPoints = act.reward * ua.goal;
@@ -623,7 +630,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                   ),
                 ),
-                // Total points
                 _rewardChip(
                   icon: Icons.emoji_events_outlined,
                   iconColor: AppColors.primaryDark,
@@ -632,7 +638,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   tooltip: 'Total points',
                 ),
                 const SizedBox(width: 4),
-                // Current earned
                 _rewardChip(
                   icon: Icons.star,
                   iconColor: AppColors.secondaryDark,
@@ -641,7 +646,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   tooltip: 'Earned points',
                 ),
                 const SizedBox(width: 4),
-                // Remaining
                 _rewardChip(
                   icon: Icons.star_border,
                   iconColor: AppColors.secondaryText,
@@ -730,8 +734,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       foregroundColor: canCheckIn
                           ? AppColors.white
                           : AppColors.secondaryText,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       elevation: canCheckIn ? 2 : 0,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),
@@ -833,8 +836,7 @@ class _HomeScreenState extends State<HomeScreen> {
       runSpacing: 8,
       children: unlocked.map((def) {
         return Container(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             color: Colors.amber.withOpacity(0.1),
             borderRadius: BorderRadius.circular(20),
@@ -861,7 +863,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── Existing widgets ──────────────────────────────────────
+  // ── Profile avatar & stat card ────────────────────────────
 
   Widget _buildProfileAvatar() {
     final photoUrl = _currentUser.photoUrl;
@@ -876,8 +878,8 @@ class _HomeScreenState extends State<HomeScreen> {
               fit: BoxFit.cover,
               width: 30,
               height: 30,
-              errorBuilder: (_, __, ___) => Icon(Icons.person,
-                  size: 30, color: AppColors.primaryDark)),
+              errorBuilder: (_, __, ___) =>
+                  Icon(Icons.person, size: 30, color: AppColors.primaryDark)),
         );
       } catch (_) {
         return Icon(Icons.person, size: 30, color: AppColors.primaryDark);
@@ -910,10 +912,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: Theme.of(context)
                   .textTheme
                   .headlineSmall
-                  ?.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  ?.copyWith(color: color, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
             Text(
