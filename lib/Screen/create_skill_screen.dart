@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:motive_me/Services/firebase_activity_service.dart';
+import 'package:motive_me/Services/firebase_skill_service.dart';
 import '../Assets/app_colors.dart';
 import '../Models/activity_model.dart';
-import '../Services/database_service.dart';
 
 class CreateSkillScreen extends StatefulWidget {
   const CreateSkillScreen({super.key});
@@ -19,7 +20,7 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
   final _goalController = TextEditingController();
 
   List<Activity> _suggestions = [];
-  Activity? _selectedSuggestion; // null = custom mode
+  Activity? _selectedSuggestion; 
   DateTime? _startDate;
   DateTime? _endDate;
   bool _isLoading = false;
@@ -39,12 +40,10 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
     _goalController.dispose();
     super.dispose();
   }
-
-  // ─── Data ──────────────────────────────────────────────
-
+  
   Future<void> _loadSuggestions() async {
     try {
-      final activities = await DatabaseService().getAllActivities();
+      final activities = await FirebaseActivityService().getAllActivities();
       setState(() {
         _suggestions = activities;
         _isFetchingSuggestions = false;
@@ -133,7 +132,7 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
 
       if (_selectedSuggestion != null) {
         // Suggestion selected → only create UserActivity
-        await DatabaseService().addSkillFromSuggestion(
+        await FirebaseSkillService().addSkillFromSuggestion(
           activityId: _selectedSuggestion!.id,
           goal: goal,
           startDate: startMs,
@@ -141,7 +140,7 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
         );
       } else {
         // Custom → create Activity + UserActivity
-        await DatabaseService().createSkill(
+        await FirebaseSkillService().createSkill(
           name: _nameController.text.trim(),
           reward: int.parse(_rewardController.text.trim()),
           goal: goal,

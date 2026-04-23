@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:motive_me/Services/firebase_user_profile_service.dart';
 import '../Assets/app_colors.dart';
 import '../Services/database_service.dart';
 import '../Models/user_model.dart';
@@ -88,7 +89,7 @@ class _SignupViewState extends State<SignupView> {
         );
 
         // Save to database
-        final databaseService = DatabaseService();
+        final databaseService = FirebaseUserProfileService();
         await databaseService.createUserProfile(userModel);
 
         if (mounted) {

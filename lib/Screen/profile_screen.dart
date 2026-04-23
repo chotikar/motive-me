@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:motive_me/Local/user_local.dart';
+import 'package:motive_me/Services/firebase_achievements_service.dart';
 import 'dart:convert';
 import '../Assets/app_colors.dart';
 import '../Models/user_model.dart';
-import '../Services/database_service.dart';
 import 'edit_profile_screen.dart';
 import 'package:intl/intl.dart';
 
@@ -27,9 +28,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadUserProfile() async {
     try {
-      final user = await DatabaseService().getUserFromLocalStorage();
+      final user = await UserLocal().getUserInfo();
       if (user != null) {
-        final achievementCount = await DatabaseService().getAchievementCount();
+        final achievementCount = await FirebaseAchievementsService().getAchievementCount();
         setState(() {
           _user = user;
           _achievementCount = achievementCount;
@@ -49,7 +50,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _logout() async {
     try {
-      await DatabaseService().clearLocalStorage();
+      await UserLocal().clearUserInfo();
+      // await AchievementLocal().clearUnlockedAchievements();
       await FirebaseAuth.instance.signOut();
       if (mounted) {
         routeToLogin();

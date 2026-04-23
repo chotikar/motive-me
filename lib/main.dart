@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:motive_me/Local/user_local.dart';
 import 'firebase_options.dart';
 import 'Assets/app_colors.dart';
-import 'Services/database_service.dart';
 import 'Screen/home_screen.dart';
 import 'Screen/login_screen.dart';
 import 'Screen/signup_screen.dart';
@@ -57,7 +57,7 @@ class _SplashGateState extends State<_SplashGate> {
 
   Future<void> _redirect() async {
     try {
-      final user = await DatabaseService().getUserFromLocalStorage();
+      final user = await UserLocal().getUserInfo();
       if (!mounted) return;
       if (user != null) {
         Navigator.pushReplacementNamed(context, '/home');

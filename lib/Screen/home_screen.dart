@@ -2,6 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:motive_me/Local/achievement_local.dart';
+import 'package:motive_me/Local/user_local.dart';
+import 'package:motive_me/Services/firebase_achievements_service.dart';
+import 'package:motive_me/Services/firebase_activity_service.dart';
 import '../Assets/app_colors.dart';
 import '../Models/user_model.dart';
 import '../Models/activity_model.dart';
@@ -112,14 +116,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadUserFromLocalStorage() async {
     try {
-      final user = await DatabaseService().getUserFromLocalStorage();
+      final user = await UserLocal().getUserInfo();
       if (user != null) {
         setState(() {
           _currentUser = user;
           _isLoading = false;
         });
         await _loadAchievements();
-         _startSkillsStream();
+        _startSkillsStream();
       } else {
         if (mounted) routeToLoginScreen();
       }
@@ -139,15 +143,15 @@ class _HomeScreenState extends State<HomeScreen> {
   // ── Skills stream ─────────────────────────────────────────
 
   void _startSkillsStream() {
-    _skillsSub = DatabaseService()
-        .streamUserActivities()
-        .listen((userActivities) async {
+    _skillsSub = FirebaseActivityService().streamUserActivities().listen((
+      userActivities,
+    ) async {
       final entries = <_SkillEntry>[];
 
       for (final ua in userActivities) {
         Activity? act = _activityCache[ua.activityId];
         if (act == null) {
-          act = await DatabaseService().getActivityById(ua.activityId);
+          act = await FirebaseActivityService().getActivityById(ua.activityId);
           if (act != null) _activityCache[ua.activityId] = act;
         }
         if (act != null) {
@@ -162,6 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
           if (e.userActivity.isExpired) return 3;
           return 1;
         }
+
         return rank(a).compareTo(rank(b));
       });
 
@@ -173,16 +178,18 @@ class _HomeScreenState extends State<HomeScreen> {
   // ── Achievements ──────────────────────────────────────────
 
   Future<void> _loadAchievements() async {
-    final ids = await DatabaseService().getUnlockedAchievementIds();
+    final ids = await AchievementLocal().getUnlockedAchievementIds();
     if (mounted) setState(() => _unlockedIds = ids);
   }
 
   Future<void> _checkAndUnlockAchievements(List<_SkillEntry> entries) async {
     final now = DateTime.now();
-    final monthStart =
-        DateTime(now.year, now.month, 1).millisecondsSinceEpoch;
-    final monthEnd =
-        DateTime(now.year, now.month + 1, 1).millisecondsSinceEpoch;
+    final monthStart = DateTime(now.year, now.month, 1).millisecondsSinceEpoch;
+    final monthEnd = DateTime(
+      now.year,
+      now.month + 1,
+      1,
+    ).millisecondsSinceEpoch;
 
     final thisMonthCompleted = entries.where((e) {
       final ua = e.userActivity;
@@ -207,13 +214,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
     bool shouldUnlock(String id) {
       switch (id) {
-        case 'monthly_first':       return thisMonthCompleted >= 1;
-        case 'monthly_three':       return thisMonthCompleted >= 3;
-        case 'monthly_five':        return thisMonthCompleted >= 5;
-        case 'monthly_ten':         return thisMonthCompleted >= 10;
-        case 'monthly_checkins_10': return thisMonthCheckIns >= 10;
-        case 'monthly_points_100':  return thisMonthPoints >= 100;
-        default:                    return false;
+        case 'monthly_first':
+          return thisMonthCompleted >= 1;
+        case 'monthly_three':
+          return thisMonthCompleted >= 3;
+        case 'monthly_five':
+          return thisMonthCompleted >= 5;
+        case 'monthly_ten':
+          return thisMonthCompleted >= 10;
+        case 'monthly_checkins_10':
+          return thisMonthCheckIns >= 10;
+        case 'monthly_points_100':
+          return thisMonthPoints >= 100;
+        default:
+          return false;
       }
     }
 
@@ -221,7 +235,7 @@ class _HomeScreenState extends State<HomeScreen> {
     for (final def in _achievementDefs) {
       final monthlyId = _monthlyId(def.id);
       if (!_unlockedIds.contains(monthlyId) && shouldUnlock(def.id)) {
-        await DatabaseService().saveUnlockedAchievementId(monthlyId);
+        await AchievementLocal().saveUnlockedAchievementId(monthlyId);
         _unlockedIds.add(monthlyId);
         hasChanges = true;
         if (mounted) _showAchievementToast(def);
@@ -252,13 +266,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   'Achievement Unlocked!',
                   style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.amber[300]),
+                    fontWeight: FontWeight.bold,
+                    color: Colors.amber[300],
+                  ),
                 ),
                 Text(
                   def.title,
-                  style: const TextStyle(
-                      fontSize: 12, color: Colors.white70),
+                  style: const TextStyle(fontSize: 12, color: Colors.white70),
                 ),
               ],
             ),
@@ -274,8 +288,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_isCheckingIn) return;
     setState(() => _isCheckingIn = true);
     try {
-      await DatabaseService().checkIn(
-          entry.userActivity.id, entry.userActivity);
+      await FirebaseActivityService().checkIn(
+        entry.userActivity.id,
+        entry.userActivity,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -304,16 +320,15 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // ── Computed stats ────────────────────────────────────────
-
   int get _totalSkills => _skills.length;
-
   int get _thisMonthCompleted {
     final now = DateTime.now();
-    final monthStart =
-        DateTime(now.year, now.month, 1).millisecondsSinceEpoch;
-    final monthEnd =
-        DateTime(now.year, now.month + 1, 1).millisecondsSinceEpoch;
+    final monthStart = DateTime(now.year, now.month, 1).millisecondsSinceEpoch;
+    final monthEnd = DateTime(
+      now.year,
+      now.month + 1,
+      1,
+    ).millisecondsSinceEpoch;
     return _skills.where((e) {
       final ua = e.userActivity;
       return ua.isCompleted &&
@@ -324,10 +339,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   int get _thisMonthPoints {
     final now = DateTime.now();
-    final monthStart =
-        DateTime(now.year, now.month, 1).millisecondsSinceEpoch;
-    final monthEnd =
-        DateTime(now.year, now.month + 1, 1).millisecondsSinceEpoch;
+    final monthStart = DateTime(now.year, now.month, 1).millisecondsSinceEpoch;
+    final monthEnd = DateTime(
+      now.year,
+      now.month + 1,
+      1,
+    ).millisecondsSinceEpoch;
     return _skills.fold<int>(0, (sum, e) {
       final checkInsThisMonth = e.userActivity.checkInDates
           .where((ts) => ts >= monthStart && ts < monthEnd)
@@ -336,35 +353,24 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // ── Build ─────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(
-          backgroundColor: AppColors.primaryDark,
-          title: const Text(
-            'Motive Me',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: AppColors.white,
-            ),
-          ),
-        ),
+        appBar: AppBar(title: const Text('Motive Me')),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.primaryDark,
+        backgroundColor: AppColors.primaryDark, 
         iconTheme: const IconThemeData(color: AppColors.white),
         title: const Text(
-          'Motive Me',
+          'Motive Meeee',
           style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: AppColors.white,
+            fontWeight: FontWeight.bold, // ← bold title
+            color: AppColors.white, // ← white text on dark bg
           ),
         ),
         centerTitle: false,
@@ -375,8 +381,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: IconButton(
               icon: const Icon(Icons.add),
               tooltip: 'Add Skill',
-              onPressed: () =>
-                  Navigator.pushNamed(context, '/create-skill'),
+              onPressed: () => Navigator.pushNamed(context, '/create-skill'),
             ),
           ),
           Padding(
@@ -407,9 +412,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Text(
                       'Welcome back!',
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineMedium
+                      style: Theme.of(context).textTheme.headlineMedium
                           ?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: AppColors.primaryText,
@@ -418,13 +421,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 4),
                     Text(
                       _currentUser.name,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyLarge
-                          ?.copyWith(
-                            fontWeight: FontWeight.normal,
-                            color: AppColors.secondaryText,
-                          ),
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.normal,
+                        color: AppColors.secondaryText,
+                      ),
                     ),
                   ],
                 ),
@@ -436,13 +436,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Row(
                   children: [
                     _buildStatCard(
-                        'Total Skills', '$_totalSkills', AppColors.info),
-                    const SizedBox(width: 12),
-                    _buildStatCard('Done This Month',
-                        '$_thisMonthCompleted', AppColors.success),
+                      'Total Skills',
+                      '$_totalSkills',
+                      AppColors.info,
+                    ),
                     const SizedBox(width: 12),
                     _buildStatCard(
-                        'Points', '$_thisMonthPoints', AppColors.warning),
+                      'Done This Month',
+                      '$_thisMonthCompleted',
+                      AppColors.success,
+                    ),
+                    const SizedBox(width: 12),
+                    _buildStatCard(
+                      'Points',
+                      '$_thisMonthPoints',
+                      AppColors.warning,
+                    ),
                   ],
                 ),
               ),
@@ -455,19 +464,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Text(
                       'My Skills',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleLarge
-                          ?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryText,
-                          ),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryText,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     if (_totalSkills > 0)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primaryLight,
                           borderRadius: BorderRadius.circular(12),
@@ -491,9 +499,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: _skills.isEmpty
                     ? _buildEmptySkills()
-                    : Column(
-                        children: _skills.map(_buildSkillCard).toList(),
-                      ),
+                    : Column(children: _skills.map(_buildSkillCard).toList()),
               ),
               const SizedBox(height: 24),
 
@@ -502,13 +508,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Text(
                   'Achievements',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryText,
-                      ),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryText,
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
@@ -535,32 +538,30 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-            Icon(Icons.fitness_center,
-                size: 48, color: AppColors.getGreyShade(400)),
+            Icon(
+              Icons.fitness_center,
+              size: 48,
+              color: AppColors.getGreyShade(400),
+            ),
             const SizedBox(height: 12),
             Text(
               'No skills yet',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primaryText,
-                  ),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.primaryText,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               'Create your first skill to get started',
               textAlign: TextAlign.center,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: AppColors.secondaryText),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.secondaryText),
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
-              onPressed: () =>
-                  Navigator.pushNamed(context, '/create-skill'),
+              onPressed: () => Navigator.pushNamed(context, '/create-skill'),
               icon: const Icon(Icons.add),
               label: const Text('Add Skill'),
             ),
@@ -598,14 +599,15 @@ class _HomeScreenState extends State<HomeScreen> {
           color: isCompleted
               ? AppColors.success.withOpacity(0.4)
               : isExpired
-                  ? AppColors.error.withOpacity(0.2)
-                  : AppColors.divider,
+              ? AppColors.error.withOpacity(0.2)
+              : AppColors.divider,
         ),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2)),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Padding(
@@ -619,15 +621,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: Text(
                     act.name,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: isExpired
-                              ? AppColors.secondaryText
-                              : AppColors.primaryText,
-                        ),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: isExpired
+                          ? AppColors.secondaryText
+                          : AppColors.primaryText,
+                    ),
                   ),
                 ),
                 _rewardChip(
@@ -665,9 +664,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 minHeight: 7,
                 backgroundColor: AppColors.divider,
                 valueColor: AlwaysStoppedAnimation(
-                  isCompleted
-                      ? AppColors.success
-                      : AppColors.primaryDark,
+                  isCompleted ? AppColors.success : AppColors.primaryDark,
                 ),
               ),
             ),
@@ -678,24 +675,23 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Text(
                   '${ua.count} / ${ua.goal} times',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(
-                        color: AppColors.secondaryText,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.secondaryText,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const Spacer(),
-                const Icon(Icons.calendar_today,
-                    size: 12, color: AppColors.secondaryText),
+                const Icon(
+                  Icons.calendar_today,
+                  size: 12,
+                  color: AppColors.secondaryText,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   'Ends ${fmt.format(DateTime.fromMillisecondsSinceEpoch(ua.expireDate))}',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: AppColors.secondaryText),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.secondaryText,
+                  ),
                 ),
               ],
             ),
@@ -721,10 +717,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       isCompleted
                           ? 'Completed'
                           : isExpired
-                              ? 'Expired'
-                              : checkedInToday
-                                  ? 'Done today'
-                                  : 'Check In',
+                          ? 'Expired'
+                          : checkedInToday
+                          ? 'Done today'
+                          : 'Check In',
                       style: const TextStyle(fontSize: 13),
                     ),
                     style: ElevatedButton.styleFrom(
@@ -737,7 +733,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       elevation: canCheckIn ? 2 : 0,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ),
@@ -802,18 +799,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Text(
                     'Keep Going!',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Complete your first check-in to unlock achievements',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: Colors.grey[600]),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                   ),
                 ],
               ),
@@ -841,7 +836,9 @@ class _HomeScreenState extends State<HomeScreen> {
             color: Colors.amber.withOpacity(0.1),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-                color: Colors.amber.withOpacity(0.5), width: 1.5),
+              color: Colors.amber.withOpacity(0.5),
+              width: 1.5,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -874,24 +871,28 @@ class _HomeScreenState extends State<HomeScreen> {
       try {
         final bytes = base64Decode(photoUrl);
         return ClipOval(
-          child: Image.memory(bytes,
-              fit: BoxFit.cover,
-              width: 30,
-              height: 30,
-              errorBuilder: (_, __, ___) =>
-                  Icon(Icons.person, size: 30, color: AppColors.primaryDark)),
+          child: Image.memory(
+            bytes,
+            fit: BoxFit.cover,
+            width: 30,
+            height: 30,
+            errorBuilder: (_, __, ___) =>
+                Icon(Icons.person, size: 30, color: AppColors.primaryDark),
+          ),
         );
       } catch (_) {
         return Icon(Icons.person, size: 30, color: AppColors.primaryDark);
       }
     }
     return ClipOval(
-      child: Image.network(photoUrl,
-          fit: BoxFit.cover,
-          width: 30,
-          height: 30,
-          errorBuilder: (_, __, ___) =>
-              Icon(Icons.person, size: 30, color: AppColors.primaryDark)),
+      child: Image.network(
+        photoUrl,
+        fit: BoxFit.cover,
+        width: 30,
+        height: 30,
+        errorBuilder: (_, __, ___) =>
+            Icon(Icons.person, size: 30, color: AppColors.primaryDark),
+      ),
     );
   }
 
@@ -909,18 +910,17 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Text(
               value,
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(color: color, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               label,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: AppColors.secondaryText),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.secondaryText),
             ),
           ],
         ),

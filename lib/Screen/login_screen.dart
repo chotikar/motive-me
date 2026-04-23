@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:motive_me/Local/user_local.dart';
+import 'package:motive_me/Services/firebase_user_profile_service.dart';
 import '../Assets/app_colors.dart';
 import '../Services/database_service.dart';
 
@@ -31,11 +33,11 @@ class _LoginViewState extends State<LoginView> {
       
       // Fetch user info from Firebase and store in local storage
       try {
-        final userProfile = await DatabaseService().getUserProfile();
+        final userProfile = await FirebaseUserProfileService().getUserProfile();
         if (userProfile != null) {
           // Convert Map to UserModel and save to local storage
-          final userModel = DatabaseService().mapToUserModel(uid, userProfile);
-          await DatabaseService().saveUserToLocalStorage(userModel);
+          final userModel = FirebaseUserProfileService().mapToUserModel(uid, userProfile);
+          await UserLocal().saveUser(userModel);
         }
       } catch (e) {
         // If fetching from Firebase fails, continue anyway

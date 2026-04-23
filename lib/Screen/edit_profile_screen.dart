@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:motive_me/Services/firebase_user_profile_service.dart';
 import 'dart:io';
 import 'dart:convert';
 import '../Assets/app_colors.dart';
@@ -158,7 +159,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
 
       // Update profile in Firebase and sync to local storage
-      final updatedUser = await DatabaseService().updateUserProfile(
+      final updatedUser = await FirebaseUserProfileService().updateUserProfile(
         name: name,
         bio: bio.isNotEmpty ? bio : null,
         photo: photoUrl,
