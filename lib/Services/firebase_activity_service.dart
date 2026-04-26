@@ -38,8 +38,8 @@ class FirebaseActivityService {
           final snap = await _db.ref('activities/$id').get();
           if (snap.exists) {
             activities.add(Activity.fromMap(
-              id,
-              Map<dynamic, dynamic>.from(snap.value as Map),
+                id,
+                Map<dynamic, dynamic>.from(snap.value as Map),
             ));
           }
         }
@@ -52,7 +52,6 @@ class FirebaseActivityService {
 
   Future<Activity?> getActivityById(String activityId) async {
     try {
-      await NetworkService.checkOrThrow();
       final snapshot = await _db.ref('activities/$activityId').get();
       if (snapshot.exists) {
         return Activity.fromMap(
@@ -67,24 +66,24 @@ class FirebaseActivityService {
   }
 
   /// Fetch all activities for suggestion
-Future<List<Activity>> getAllActivities() async {
-  try {
+  Future<List<Activity>> getAllActivities() async {
+    try {
     await NetworkService.checkOrThrow();
-    final snapshot = await _db.ref('activities').get();
-    if (!snapshot.exists) return [];
-    final map = Map<dynamic, dynamic>.from(snapshot.value as Map);
-    return map.entries.map((e) {
-      return Activity.fromMap(
-        e.key.toString(),
-        Map<dynamic, dynamic>.from(e.value as Map),
-      );
-    }).toList();
-  } catch (e) {
-    throw Exception('Failed to fetch activities: $e');
+      final snapshot = await _db.ref('activities').get();
+      if (!snapshot.exists) return [];
+      final map = Map<dynamic, dynamic>.from(snapshot.value as Map);
+      return map.entries.map((e) {
+        return Activity.fromMap(
+          e.key.toString(),
+          Map<dynamic, dynamic>.from(e.value as Map),
+        );
+      }).toList();
+    } catch (e) {
+      throw Exception('Failed to fetch activities: $e');
+    }
   }
-}
 
-   Future<void> updateActivity(Activity activity) async {
+  Future<void> updateActivity(Activity activity) async {
     try {
       await NetworkService.checkOrThrow();
       await _db.ref('activities/${activity.id}').update(activity.toMap());
@@ -92,20 +91,27 @@ Future<List<Activity>> getAllActivities() async {
       throw Exception('Failed to update activity: $e');
     }
   }
-
-  Future<void> deleteActivity(String activityId) async {
+  
+  Future<void> deleteActivity({
+    required String activityId,
+    required String userActivityId,
+  }) async {
     try {
       await NetworkService.checkOrThrow();
-      await _db.ref().update({
-        'activities/$activityId': null,
-        'userActivities/$_uid/$activityId': null,
-        'checkIns/$activityId': null,
-      });
+      final uid = _uid; // throws early if not authenticated
+
+      // Use remove() on each ref directly instead of a root-level multi-path
+      // update({path: null}). On Flutter Web the JS SDK evaluates .validate
+      // rules even for null-value writes in multi-path updates, which causes
+      // PERMISSION_DENIED when the activity node has a hasChildren() validator.
+      // remove() is the canonical deletion API and skips .validate correctly.
+      await _db.ref('userActivities/$uid/$userActivityId').remove();
+      await _db.ref('activities/$activityId').remove();
     } catch (e) {
       throw Exception('Failed to delete activity: $e');
     }
   }
-  
+
   Future<void> checkIn(String userActivityId, UserActivity current) async {
     await NetworkService.checkOrThrow();
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -141,8 +147,7 @@ Future<List<Activity>> getAllActivities() async {
           e.key.toString(),
           Map<dynamic, dynamic>.from(e.value as Map)
         );
-    }).toList();
-  });
-}
-
+      }).toList();
+    });
+  }
 }

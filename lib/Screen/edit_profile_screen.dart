@@ -10,10 +10,7 @@ import '../Services/database_service.dart';
 class EditProfileScreen extends StatefulWidget {
   final UserModel user;
 
-  const EditProfileScreen({
-    super.key,
-    required this.user,
-  });
+  const EditProfileScreen({super.key, required this.user});
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -186,11 +183,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.primaryDark, 
+        backgroundColor: AppColors.primaryDark,
         iconTheme: const IconThemeData(color: AppColors.white),
         title: const Text(
           'Edit Profile',
-           style: TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.bold, // ← bold title
             color: AppColors.white, // ← white text on dark bg
           ),
@@ -231,10 +228,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: AppColors.primaryDark,
-                          border: Border.all(
-                            color: AppColors.white,
-                            width: 2,
-                          ),
+                          border: Border.all(color: AppColors.white, width: 2),
                         ),
                         child: _isEncodingImage
                             ? const SizedBox(
@@ -286,9 +280,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             // Name Field
             Text(
               'Name',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -312,9 +306,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             // Bio Field
             Text(
               'Bio (Optional)',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -356,7 +350,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
-                onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+                onPressed: _isLoading
+                    ? null
+                    : () => Navigator.of(context).pop(),
                 child: const Text('Cancel'),
               ),
             ),
@@ -391,11 +387,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               fit: BoxFit.cover,
               width: 100,
               height: 100,
-              errorBuilder: (context, error, stackTrace) => Icon(
-                Icons.person,
-                size: 50,
-                color: AppColors.primaryDark,
-              ),
+              errorBuilder: (context, error, stackTrace) =>
+                  Icon(Icons.person, size: 50, color: AppColors.primaryDark),
             ),
           );
         } catch (_) {
@@ -409,20 +402,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             fit: BoxFit.cover,
             width: 100,
             height: 100,
-            errorBuilder: (context, error, stackTrace) => Icon(
-              Icons.person,
-              size: 50,
-              color: AppColors.primaryDark,
-            ),
+            errorBuilder: (context, error, stackTrace) =>
+                Icon(Icons.person, size: 50, color: AppColors.primaryDark),
           ),
         );
       }
     }
 
-    return Icon(
-      Icons.person,
-      size: 50,
-      color: AppColors.primaryDark,
-    );
+    return Icon(Icons.person, size: 50, color: AppColors.primaryDark);
   }
 }

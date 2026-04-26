@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
@@ -43,7 +44,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '892879784845',
     projectId: 'motiveme-6c8da',
     authDomain: 'motiveme-6c8da.firebaseapp.com',
-    databaseURL: 'https://motiveme-6c8da-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://motiveme-6c8da-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'motiveme-6c8da.firebasestorage.app',
     measurementId: 'G-7M02SBSTV7',
   );
@@ -53,7 +55,8 @@ class DefaultFirebaseOptions {
     appId: '1:892879784845:android:9ccfc3650b7f8a65384bc4',
     messagingSenderId: '892879784845',
     projectId: 'motiveme-6c8da',
-    databaseURL: 'https://motiveme-6c8da-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://motiveme-6c8da-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'motiveme-6c8da.firebasestorage.app',
   );
 
@@ -62,9 +65,11 @@ class DefaultFirebaseOptions {
     appId: '1:892879784845:ios:d828efb2edbc2792384bc4',
     messagingSenderId: '892879784845',
     projectId: 'motiveme-6c8da',
-    databaseURL: 'https://motiveme-6c8da-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://motiveme-6c8da-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'motiveme-6c8da.firebasestorage.app',
-    iosClientId: '892879784845-jhhpqjifnmnvvqtqnddopllmer8kldmv.apps.googleusercontent.com',
+    iosClientId:
+        '892879784845-jhhpqjifnmnvvqtqnddopllmer8kldmv.apps.googleusercontent.com',
     iosBundleId: 'com.example.motiveMe',
   );
 
@@ -73,9 +78,11 @@ class DefaultFirebaseOptions {
     appId: '1:892879784845:ios:d828efb2edbc2792384bc4',
     messagingSenderId: '892879784845',
     projectId: 'motiveme-6c8da',
-    databaseURL: 'https://motiveme-6c8da-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://motiveme-6c8da-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'motiveme-6c8da.firebasestorage.app',
-    iosClientId: '892879784845-jhhpqjifnmnvvqtqnddopllmer8kldmv.apps.googleusercontent.com',
+    iosClientId:
+        '892879784845-jhhpqjifnmnvvqtqnddopllmer8kldmv.apps.googleusercontent.com',
     iosBundleId: 'com.example.motiveMe',
   );
 
@@ -85,7 +92,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '892879784845',
     projectId: 'motiveme-6c8da',
     authDomain: 'motiveme-6c8da.firebaseapp.com',
-    databaseURL: 'https://motiveme-6c8da-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://motiveme-6c8da-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'motiveme-6c8da.firebasestorage.app',
     measurementId: 'G-L9WTEPVFRL',
   );

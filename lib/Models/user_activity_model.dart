@@ -19,8 +19,7 @@ class UserActivity {
 
   // ── Computed helpers ──────────────────────────────────
 
-  bool get isExpired =>
-      DateTime.now().millisecondsSinceEpoch >= expireDate;
+  bool get isExpired => DateTime.now().millisecondsSinceEpoch >= expireDate;
 
   bool get isCompleted => count >= goal;
 
@@ -81,10 +80,7 @@ class UserActivity {
     );
   }
 
-  UserActivity copyWith({
-    int? count,
-    List<int>? checkInDates,
-  }) {
+  UserActivity copyWith({int? count, List<int>? checkInDates}) {
     return UserActivity(
       id: id,
       activityId: activityId,

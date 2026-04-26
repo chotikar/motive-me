@@ -11,9 +11,7 @@ import 'Screen/create_skill_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -31,10 +29,10 @@ class MyApp extends StatelessWidget {
       ),
       home: const _SplashGate(),
       routes: {
-        '/login':        (_) => const LoginView(),
-        '/signup':       (_) => const SignupView(),
-        '/home':         (_) => const HomeScreen(),
-        '/profile':      (_) => const ProfileScreen(),
+        '/login': (_) => const LoginView(),
+        '/signup': (_) => const SignupView(),
+        '/home': (_) => const HomeScreen(),
+        '/profile': (_) => const ProfileScreen(),
         '/create-skill': (_) => const CreateSkillScreen(),
       },
     );
@@ -60,13 +58,13 @@ class _SplashGateState extends State<_SplashGate> {
       final user = await UserLocal().getUserInfo();
       if (!mounted) return;
       if (user != null) {
-        Navigator.pushReplacementNamed(context, '/home');
-      } else {
-        Navigator.pushReplacementNamed(context, '/login');
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+        } else {
+            Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
       }
     } catch (_) {
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/login');
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
       }
     }
   }

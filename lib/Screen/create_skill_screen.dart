@@ -20,7 +20,7 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
   final _goalController = TextEditingController();
 
   List<Activity> _suggestions = [];
-  Activity? _selectedSuggestion; 
+  Activity? _selectedSuggestion;
   DateTime? _startDate;
   DateTime? _endDate;
   bool _isLoading = false;
@@ -40,7 +40,7 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
     _goalController.dispose();
     super.dispose();
   }
-  
+
   Future<void> _loadSuggestions() async {
     try {
       final activities = await FirebaseActivityService().getAllActivities();
@@ -77,8 +77,7 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
 
     final initial = isStart
         ? (_startDate ?? now)
-        : (_endDate ??
-            (_startDate ?? now).add(const Duration(days: 7)));
+        : (_endDate ?? (_startDate ?? now).add(const Duration(days: 7)));
 
     final picked = await showDatePicker(
       context: context,
@@ -124,10 +123,17 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
     try {
       final goal = int.parse(_goalController.text.trim());
       final startMs = DateTime(
-        _startDate!.year, _startDate!.month, _startDate!.day,
+        _startDate!.year,
+        _startDate!.month,
+        _startDate!.day,
       ).millisecondsSinceEpoch;
       final expireMs = DateTime(
-        _endDate!.year, _endDate!.month, _endDate!.day, 23, 59, 59,
+        _endDate!.year,
+        _endDate!.month,
+        _endDate!.day,
+        23,
+        59,
+        59,
       ).millisecondsSinceEpoch;
 
       if (_selectedSuggestion != null) {
@@ -174,15 +180,15 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.primaryDark, 
+        backgroundColor: AppColors.primaryDark,
         iconTheme: const IconThemeData(color: AppColors.white),
         title: const Text(
           'Add Skill',
-           style: TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.bold, // ← bold title
             color: AppColors.white, // ← white text on dark bg
           ),
-          ),
+        ),
         centerTitle: true,
         elevation: 0,
       ),
@@ -246,10 +252,15 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
                 decoration: _inputDeco(
                   hint: 'e.g. 50',
                   locked: !isCustom,
-                  prefix: const Icon(Icons.star, size: 18, color: AppColors.secondaryDark),
+                  prefix: const Icon(
+                    Icons.star,
+                    size: 18,
+                    color: AppColors.secondaryDark,
+                  ),
                 ),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Reward is required';
+                  if (v == null || v.trim().isEmpty)
+                    return 'Reward is required';
                   final n = int.tryParse(v.trim());
                   if (n == null || n < 0) return 'Must be 0 or more';
                   return null;
@@ -265,7 +276,11 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: _inputDeco(
                   hint: 'How many times to complete (1 – 10,000)',
-                  prefix: const Icon(Icons.flag_outlined, size: 18, color: AppColors.primaryDark),
+                  prefix: const Icon(
+                    Icons.flag_outlined,
+                    size: 18,
+                    color: AppColors.primaryDark,
+                  ),
                 ),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Goal is required';
@@ -400,7 +415,7 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
                     color: AppColors.primaryDark.withOpacity(0.25),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
-                  )
+                  ),
                 ]
               : [],
         ),
@@ -462,16 +477,16 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
             color: disabled
                 ? AppColors.divider
                 : date != null
-                    ? AppColors.primaryDark
-                    : AppColors.divider,
+                ? AppColors.primaryDark
+                : AppColors.divider,
             width: date != null ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(8),
           color: disabled
               ? AppColors.surfaceVariant
               : date != null
-                  ? AppColors.primaryLight.withOpacity(0.3)
-                  : null,
+              ? AppColors.primaryLight.withOpacity(0.3)
+              : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -480,9 +495,7 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
               label,
               style: TextStyle(
                 fontSize: 11,
-                color: disabled
-                    ? AppColors.disabled
-                    : AppColors.secondaryText,
+                color: disabled ? AppColors.disabled : AppColors.secondaryText,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -502,8 +515,8 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
                     color: disabled
                         ? AppColors.disabled
                         : date != null
-                            ? AppColors.primaryText
-                            : AppColors.hintText,
+                        ? AppColors.primaryText
+                        : AppColors.hintText,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -516,52 +529,53 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
   }
 
   Widget _label(String text) => Text(
-        text,
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryText,
-            ),
-      );
+    text,
+    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+      fontWeight: FontWeight.bold,
+      color: AppColors.primaryText,
+    ),
+  );
 
   InputDecoration _inputDeco({
     required String hint,
     bool locked = false,
     Widget? prefix,
-  }) =>
-      InputDecoration(
-        hintText: hint,
-        prefixIcon: prefix,
-        suffixIcon: locked
-            ? const Icon(Icons.lock_outline,
-                size: 16, color: AppColors.secondaryText)
-            : null,
-        filled: true,
-        fillColor: locked ? AppColors.surfaceVariant : AppColors.surface,
-        counterText: '',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide:
-              const BorderSide(color: AppColors.primaryDark, width: 2),
-        ),
-        disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.divider),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.divider),
-        ),
-      );
+  }) => InputDecoration(
+    hintText: hint,
+    prefixIcon: prefix,
+    suffixIcon: locked
+        ? const Icon(
+            Icons.lock_outline,
+            size: 16,
+            color: AppColors.secondaryText,
+          )
+        : null,
+    filled: true,
+    fillColor: locked ? AppColors.surfaceVariant : AppColors.surface,
+    counterText: '',
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+    ),
+    disabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: const BorderSide(color: AppColors.divider),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: const BorderSide(color: AppColors.divider),
+    ),
+  );
 
   Widget _errorBox(String msg) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          color: Colors.red.withOpacity(0.1),
-          border: Border.all(color: Colors.red),
-        ),
-        child: Text(msg, style: const TextStyle(color: Colors.red)),
-      );
+    width: double.infinity,
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(8),
+      color: Colors.red.withOpacity(0.1),
+      border: Border.all(color: Colors.red),
+    ),
+    child: Text(msg, style: const TextStyle(color: Colors.red)),
+  );
 }

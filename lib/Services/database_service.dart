@@ -14,24 +14,24 @@ class DatabaseService {
   }
 
   DatabaseService._internal();
-  
+
   Future<UserModel?> initializeUserOnAppStart() async {
     try {
+      // Check if there's a user in local storage
       final localUser = await _userLocal.getUserInfo();
-      
+
       if (localUser == null) {
-        return null;
+        return null; // No user, redirect to login
       }
 
+      // Check if user is authenticated with Firebase
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        return null;
+        return null; // Not authenticated, redirect to login
       }
 
       final connected = await NetworkService.isConnected();
-      if (!connected) {
-        return localUser;
-      }
+      if (!connected) return localUser;
 
       try {
         final snapshot = await _db.ref('users/${currentUser.uid}').get();
@@ -45,7 +45,6 @@ class DatabaseService {
           return updatedUser;
         }
       } catch (e) {
-        // Firebase fetch failed, return local user
         return localUser;
       }
       return localUser;
@@ -53,5 +52,4 @@ class DatabaseService {
       throw Exception('Failed to initialize user: $e');
     }
   }
-
 }

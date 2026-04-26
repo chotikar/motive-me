@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter analyze *)",
+      "Bash(flutter pub *)",
+      "Bash(flutter test *)",
+      "Bash(python3 -c \"import sys; lines=sys.stdin.readlines\\(\\); [print\\(l.rstrip\\(\\)\\) for l in lines[-5:]]\")",
+      "Read(//tmp/**)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(dart run *)",
+      "Bash(python3 -c ' *)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(echo \"EXIT:$?\")"
+    ]
+  }
+}

@@ -1,17 +1,13 @@
 class Activity {
   final String id;
-  final String name;   // was 'title'
-  final int reward;    // new — required by rules
+  final String name; // was 'title'
+  final int reward; // new — required by rules
 
-  Activity({
-    required this.id,
-    required this.name,
-    required this.reward,
-  });
+  Activity({required this.id, required this.name, required this.reward});
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,       // required: must equal $activityId
+      'id': id, // required: must equal $activityId
       'name': name,
       'reward': reward,
       // NO other fields — $other: false rejects anything extra

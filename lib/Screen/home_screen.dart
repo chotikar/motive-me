@@ -3,17 +3,14 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:motive_me/Local/achievement_local.dart';
+import 'package:motive_me/Local/skill_entries_local.dart';
 import 'package:motive_me/Local/user_local.dart';
-import 'package:motive_me/Services/firebase_achievements_service.dart';
 import 'package:motive_me/Services/firebase_activity_service.dart';
+import 'package:motive_me/Services/network_service.dart';
 import '../Assets/app_colors.dart';
 import '../Models/user_model.dart';
 import '../Models/activity_model.dart';
 import '../Models/user_activity_model.dart';
-import '../Services/database_service.dart';
-
-// ── Helpers ────────────────────────────────────────────────
-
 class _SkillEntry {
   final UserActivity userActivity;
   final Activity activity;
@@ -53,7 +50,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Set<String> _unlockedIds = {};
   final Map<String, Activity> _activityCache = {};
   bool _isCheckingIn = false;
+  bool _isOffline = false;
   StreamSubscription<List<UserActivity>>? _skillsSub;
+
+  final SkillEntriesLocal _skillEntriesLocal = SkillEntriesLocal();
 
   static const List<_AchievementDef> _achievementDefs = [
     _AchievementDef(
@@ -123,13 +123,43 @@ class _HomeScreenState extends State<HomeScreen> {
           _isLoading = false;
         });
         await _loadAchievements();
-        _startSkillsStream();
+
+        final connected = await NetworkService.isConnected();
+        if (connected) {
+          setState(() => _isOffline = false);
+          _startSkillsStream();
+        } else {
+          setState(() => _isOffline = true);
+          await _loadSkillsFromLocal();
+        }
       } else {
         if (mounted) routeToLoginScreen();
       }
     } catch (_) {
       if (mounted) routeToLoginScreen();
     }
+  }
+
+  /// Load the last cached skill entries from local storage (offline fallback).
+  Future<void> _loadSkillsFromLocal() async {
+    final cached = await _skillEntriesLocal.load();
+    if (!mounted) return;
+
+    final entries = cached
+        .map((e) => _SkillEntry(userActivity: e.userActivity, activity: e.activity))
+        .toList();
+
+    // Same sort: Active → Completed → Expired
+    entries.sort((a, b) {
+      int rank(_SkillEntry e) {
+        if (e.userActivity.isCompleted) return 2;
+        if (e.userActivity.isExpired) return 3;
+        return 1;
+      }
+      return rank(a).compareTo(rank(b));
+    });
+
+    setState(() => _skills = entries);
   }
 
   void routeToLoginScreen() {
@@ -166,9 +196,13 @@ class _HomeScreenState extends State<HomeScreen> {
           if (e.userActivity.isExpired) return 3;
           return 1;
         }
-
         return rank(a).compareTo(rank(b));
       });
+
+      // Persist to local storage for offline use
+      await _skillEntriesLocal.save(
+        entries.map((e) => (userActivity: e.userActivity, activity: e.activity)).toList(),
+      );
 
       if (mounted) setState(() => _skills = entries);
       await _checkAndUnlockAchievements(entries);
@@ -176,7 +210,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ── Achievements ──────────────────────────────────────────
-
   Future<void> _loadAchievements() async {
     final ids = await AchievementLocal().getUnlockedAchievementIds();
     if (mounted) setState(() => _unlockedIds = ids);
@@ -320,6 +353,78 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // ── Delete skill ──────────────────────────────────────────
+
+  Future<void> _confirmDeleteSkill(_SkillEntry entry) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Skill'),
+        content: Text(
+          'Delete "${entry.activity.name}"?\nThis cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) await _deleteSkill(entry);
+  }
+
+  Future<void> _deleteSkill(_SkillEntry entry) async {
+    try {
+      await FirebaseActivityService().deleteActivity(
+        activityId: entry.activity.id,
+        userActivityId: entry.userActivity.id,
+      );
+
+      // Remove from local cache immediately so offline view stays consistent.
+      final remaining = _skills.where((e) => e != entry).toList();
+      await _skillEntriesLocal.save(
+        remaining
+            .map((e) => (userActivity: e.userActivity, activity: e.activity))
+            .toList(),
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.delete_outline, color: AppColors.white),
+                const SizedBox(width: 8),
+                Text('"${entry.activity.name}" deleted'),
+              ],
+            ),
+            backgroundColor: AppColors.primaryDark,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      // The Firebase stream will fire automatically and call setState,
+      // so the UI refreshes without a manual setState here.
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
   int get _totalSkills => _skills.length;
   int get _thisMonthCompleted {
     final now = DateTime.now();
@@ -364,7 +469,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.primaryDark, 
+        backgroundColor: AppColors.primaryDark,
         iconTheme: const IconThemeData(color: AppColors.white),
         title: const Text(
           'Motive Meeee',
@@ -396,14 +501,53 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          _activityCache.clear();
-          await _loadAchievements();
+          final connected = await NetworkService.isConnected();
+          if (connected) {
+            setState(() => _isOffline = false);
+            _activityCache.clear();
+            await _loadAchievements();
+            // Stream is already running; clear cache forces re-fetch of activities
+          } else {
+            setState(() => _isOffline = true);
+            await _loadSkillsFromLocal();
+          }
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Offline banner
+              if (_isOffline)
+                Container(
+                  width: double.infinity,
+                  color: AppColors.error.withOpacity(0.12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.wifi_off,
+                        size: 16,
+                        color: AppColors.error,
+                      ),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'You\'re offline — showing cached data. Check-in is unavailable.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.error,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
               // Welcome
               Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -652,6 +796,37 @@ class _HomeScreenState extends State<HomeScreen> {
                   label: '$remainPoints left',
                   tooltip: 'Remaining points',
                 ),
+                const SizedBox(width: 4),
+                // Delete button
+                Tooltip(
+                  message: 'Delete skill',
+                  child: InkWell(
+                    onTap: _isOffline ? null : () => _confirmDeleteSkill(entry),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _isOffline
+                            ? AppColors.getGreyShade(100)
+                            : AppColors.error.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: _isOffline
+                              ? AppColors.getGreyShade(300)
+                              : AppColors.error.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.delete_outline,
+                        size: 14,
+                        color: _isOffline
+                            ? AppColors.getGreyShade(400)
+                            : AppColors.error,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -704,34 +879,38 @@ class _HomeScreenState extends State<HomeScreen> {
                 SizedBox(
                   height: 36,
                   child: ElevatedButton.icon(
-                    onPressed: canCheckIn && !_isCheckingIn
+                    onPressed: canCheckIn && !_isCheckingIn && !_isOffline
                         ? () => _checkIn(entry)
                         : null,
                     icon: Icon(
-                      (isCompleted || checkedInToday)
-                          ? Icons.check
-                          : Icons.add_task,
+                      _isOffline
+                          ? Icons.wifi_off
+                          : (isCompleted || checkedInToday)
+                              ? Icons.check
+                              : Icons.add_task,
                       size: 16,
                     ),
                     label: Text(
-                      isCompleted
-                          ? 'Completed'
-                          : isExpired
-                          ? 'Expired'
-                          : checkedInToday
-                          ? 'Done today'
-                          : 'Check In',
+                      _isOffline
+                          ? 'No Internet'
+                          : isCompleted
+                              ? 'Completed'
+                              : isExpired
+                                  ? 'Expired'
+                                  : checkedInToday
+                                      ? 'Done today'
+                                      : 'Check In',
                       style: const TextStyle(fontSize: 13),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: canCheckIn
+                      backgroundColor: (canCheckIn && !_isOffline)
                           ? AppColors.primaryDark
                           : AppColors.getGreyShade(200),
-                      foregroundColor: canCheckIn
+                      foregroundColor: (canCheckIn && !_isOffline)
                           ? AppColors.white
                           : AppColors.secondaryText,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
-                      elevation: canCheckIn ? 2 : 0,
+                      elevation: (canCheckIn && !_isOffline) ? 2 : 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -860,12 +1039,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── Profile avatar & stat card ────────────────────────────
-
   Widget _buildProfileAvatar() {
     final photoUrl = _currentUser.photoUrl;
     if (photoUrl == null || photoUrl.isEmpty) {
-      return Icon(Icons.person, size: 30, color: AppColors.primaryDark);
+      return Icon(Icons.person, size: 30, color: const Color.fromARGB(255, 250, 250, 252));
     }
     if (!photoUrl.startsWith('http')) {
       try {

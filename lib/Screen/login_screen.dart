@@ -24,26 +24,37 @@ class _LoginViewState extends State<LoginView> {
       _errorMessage = null;
     });
 
+    if (_emailController.text.trim().isEmpty || _passwordController.text.isEmpty) {
+  setState(() { 
+    _errorMessage = 'Please enter your email and password';
+   _isLoading = false;
+   });
+  return;
+    }
+
     try {
       final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
       final uid = credential.user!.uid;
-      
+
       // Fetch user info from Firebase and store in local storage
       try {
         final userProfile = await FirebaseUserProfileService().getUserProfile();
         if (userProfile != null) {
           // Convert Map to UserModel and save to local storage
-          final userModel = FirebaseUserProfileService().mapToUserModel(uid, userProfile);
+          final userModel = FirebaseUserProfileService().mapToUserModel(
+            uid,
+            userProfile,
+          );
           await UserLocal().saveUser(userModel);
         }
       } catch (e) {
         // If fetching from Firebase fails, continue anyway
         print('Error fetching user profile: $e');
       }
-      
+
       if (mounted) {
         Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
       }
@@ -70,10 +81,7 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Login'), centerTitle: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -81,19 +89,12 @@ class _LoginViewState extends State<LoginView> {
           children: [
             const SizedBox(height: 40),
             // App Logo
-            Icon(
-              Icons.psychology,
-              size: 80,
-              color: AppColors.primaryDark,
-            ),
+            Icon(Icons.psychology, size: 80, color: AppColors.primaryDark),
             const SizedBox(height: 24),
             // Title
             const Text(
               'Motive Me',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 40),
             // Email field
@@ -147,12 +148,11 @@ class _LoginViewState extends State<LoginView> {
                 onPressed: _isLoading ? null : _login,
                 child: _isLoading
                     ? const CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.white,
+                        ),
                       )
-                    : const Text(
-                        'Login',
-                        style: TextStyle(fontSize: 16),
-                      ),
+                    : const Text('Login', style: TextStyle(fontSize: 16)),
               ),
             ),
             const SizedBox(height: 16),

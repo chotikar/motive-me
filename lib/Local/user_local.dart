@@ -2,7 +2,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../Models/user_model.dart';
 
 class UserLocal {
-
   Future<void> saveUser(UserModel userModel) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -28,7 +27,7 @@ class UserLocal {
       final uid = prefs.getString('user_uid');
       final name = prefs.getString('user_name');
       final email = prefs.getString('user_email');
-      
+
       if (uid == null || name == null || email == null) return null;
 
       return UserModel(

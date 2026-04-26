@@ -18,7 +18,7 @@ class _SignupViewState extends State<SignupView> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _bioController = TextEditingController();
-  
+
   bool _isLoading = false;
   String? _errorMessage;
   bool _obscurePassword = true;
@@ -68,10 +68,11 @@ class _SignupViewState extends State<SignupView> {
 
     try {
       // Create Firebase Auth user
-      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
+      final userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
 
       if (userCredential.user != null) {
         final uid = userCredential.user!.uid;
@@ -83,7 +84,9 @@ class _SignupViewState extends State<SignupView> {
           name: _nameController.text.trim(),
           email: _emailController.text.trim(),
           photoUrl: null,
-          bio: _bioController.text.trim().isEmpty ? null : _bioController.text.trim(),
+          bio: _bioController.text.trim().isEmpty
+              ? null
+              : _bioController.text.trim(),
           createdAt: now,
           updatedAt: now,
         );
@@ -94,7 +97,7 @@ class _SignupViewState extends State<SignupView> {
 
         if (mounted) {
           // Navigate to home
-         Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
         }
       }
     } on FirebaseAuthException catch (e) {
@@ -145,27 +148,17 @@ class _SignupViewState extends State<SignupView> {
           children: [
             const SizedBox(height: 24),
             // App Logo
-            Icon(
-              Icons.psychology,
-              size: 80,
-              color: AppColors.primaryDark,
-            ),
+            Icon(Icons.psychology, size: 80, color: AppColors.primaryDark),
             const SizedBox(height: 24),
             // Title
             const Text(
               'Create Account',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               'Join us to build better habits',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.secondaryText,
-              ),
+              style: TextStyle(fontSize: 14, color: AppColors.secondaryText),
             ),
             const SizedBox(height: 32),
 
@@ -295,7 +288,9 @@ class _SignupViewState extends State<SignupView> {
                 ),
                 child: _isLoading
                     ? const CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.white,
+                        ),
                       )
                     : const Text(
                         'Sign Up',

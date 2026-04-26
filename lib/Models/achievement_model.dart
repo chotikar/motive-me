@@ -3,9 +3,9 @@ class Achievement {
   final String uid;
   final String title;
   final String description;
-  final String icon;           // emoji or icon name
-  final String category;       // e.g., "streak", "milestone", "performance"
-  final int unlockedAt;        // timestamp
+  final String icon; // emoji or icon name
+  final String category; // e.g., "streak", "milestone", "performance"
+  final int unlockedAt; // timestamp
   final bool isUnlocked;
 
   Achievement({

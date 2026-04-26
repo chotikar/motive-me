@@ -66,11 +66,7 @@ class UserModel {
   }
 
   /// สร้าง copy ที่มีบาง field ถูกแก้ — ใช้ตอน update profile
-  UserModel copyWith({
-    String? name,
-    String? photoUrl,
-    String? bio,
-  }) {
+  UserModel copyWith({String? name, String? photoUrl, String? bio}) {
     return UserModel(
       uid: uid,
       name: name ?? this.name,

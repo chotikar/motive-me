@@ -94,5 +94,4 @@ class FirebaseUserProfileService {
       throw Exception('Failed to update user profile: $e');
     }
   }
-
 }

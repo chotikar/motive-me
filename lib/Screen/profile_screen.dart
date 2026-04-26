@@ -30,7 +30,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final user = await UserLocal().getUserInfo();
       if (user != null) {
-        final achievementCount = await FirebaseAchievementsService().getAchievementCount();
+        final achievementCount = await FirebaseAchievementsService()
+            .getAchievementCount();
         setState(() {
           _user = user;
           _achievementCount = achievementCount;
@@ -58,16 +59,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error logging out')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Error logging out')));
       }
     }
   }
 
-void routeToLogin() {
-   Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-}
+  void routeToLogin() {
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+  }
 
   String _formatDate(int milliseconds) {
     if (milliseconds == 0) return 'Unknown';
@@ -120,15 +121,15 @@ void routeToLogin() {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-           backgroundColor: AppColors.primaryDark, 
-        iconTheme: const IconThemeData(color: AppColors.white),
-        title: const Text(
-          'Profile',
-           style: TextStyle(
-            fontWeight: FontWeight.bold, // ← bold title
-            color: AppColors.white, // ← white text on dark bg
+          backgroundColor: AppColors.primaryDark,
+          iconTheme: const IconThemeData(color: AppColors.white),
+          title: const Text(
+            'Profile',
+            style: TextStyle(
+              fontWeight: FontWeight.bold, // ← bold title
+              color: AppColors.white, // ← white text on dark bg
+            ),
           ),
-        ),
         ),
         body: const Center(child: CircularProgressIndicator()),
       );
@@ -136,11 +137,11 @@ void routeToLogin() {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.primaryDark, 
+        backgroundColor: AppColors.primaryDark,
         iconTheme: const IconThemeData(color: AppColors.white),
         title: const Text(
           'Profile',
-           style: TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.bold, // ← bold title
             color: AppColors.white, // ← white text on dark bg
           ),
@@ -196,7 +197,10 @@ void routeToLogin() {
                     const SizedBox(height: 8),
                     Text(
                       _user.email,
-                      style: const TextStyle(fontSize: 14, color: AppColors.white),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.white,
+                      ),
                     ),
                   ],
                 ),
@@ -215,7 +219,8 @@ void routeToLogin() {
                   if (_user.bio != null && _user.bio!.isNotEmpty) ...[
                     Text(
                       'Bio',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: AppColors.primaryText,
                           ),
@@ -234,8 +239,8 @@ void routeToLogin() {
                       child: Text(
                         _user.bio!,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.secondaryText,
-                            ),
+                          color: AppColors.secondaryText,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -261,18 +266,22 @@ void routeToLogin() {
                     ),
                     child: Column(
                       children: [
-                        Icon(Icons.emoji_events, size: 40, color: AppColors.primaryDark),
+                        Icon(
+                          Icons.emoji_events,
+                          size: 40,
+                          color: AppColors.primaryDark,
+                        ),
                         const SizedBox(height: 8),
                         Text(
                           'Achievements',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.secondaryText,
-                              ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppColors.secondaryText),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           '$_achievementCount',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.primaryDark,
                               ),
@@ -286,9 +295,9 @@ void routeToLogin() {
                   Text(
                     'Details',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryText,
-                        ),
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryText,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   _buildInfoTile(
@@ -303,7 +312,8 @@ void routeToLogin() {
                     icon: Icons.update,
                     label: 'Last Updated',
                     value: _formatDate(
-                        _user.updatedAt == 0 ? _user.createdAt : _user.updatedAt),
+                      _user.updatedAt == 0 ? _user.createdAt : _user.updatedAt,
+                    ),
                   ),
                   const SizedBox(height: 24),
 
@@ -314,11 +324,13 @@ void routeToLogin() {
                       icon: const Icon(Icons.edit),
                       label: const Text('Edit Profile'),
                       onPressed: () async {
-                        final updatedUser = await Navigator.of(context).push<UserModel>(
-                          MaterialPageRoute(
-                            builder: (context) => EditProfileScreen(user: _user),
-                          ),
-                        );
+                        final updatedUser = await Navigator.of(context)
+                            .push<UserModel>(
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    EditProfileScreen(user: _user),
+                              ),
+                            );
                         if (updatedUser != null) {
                           setState(() => _user = updatedUser);
                         }
@@ -359,16 +371,16 @@ void routeToLogin() {
                 Text(
                   label,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.secondaryText,
-                      ),
+                    color: AppColors.secondaryText,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   value,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.primaryText,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    color: AppColors.primaryText,
+                    fontWeight: FontWeight.w500,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),

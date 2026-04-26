@@ -79,11 +79,7 @@ class UserService {
   // ========== UPDATE ==========
 
   /// อัปเดต profile (บาง field เท่านั้น)
-  Future<void> updateUser({
-    String? name,
-    String? photoUrl,
-    String? bio,
-  }) async {
+  Future<void> updateUser({String? name, String? photoUrl, String? bio}) async {
     final updates = <String, dynamic>{
       'updatedAt': DateTime.now().millisecondsSinceEpoch,
     };
