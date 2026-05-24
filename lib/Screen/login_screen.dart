@@ -19,25 +19,29 @@ class _LoginViewState extends State<LoginView> {
   String? _errorMessage;
 
   Future<void> _login() async {
+    print('DIAG SCREEN: _login() function entered');
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     if (_emailController.text.trim().isEmpty || _passwordController.text.isEmpty) {
-  setState(() { 
-    _errorMessage = 'Please enter your email and password';
-   _isLoading = false;
-   });
-  return;
+      print('DIAG SCREEN: inputs are empty, returning early');
+      setState(() { 
+        _errorMessage = 'Please enter your email and password';
+        _isLoading = false;
+      });
+      return;
     }
 
     try {
+      print('DIAG SCREEN: Calling signInWithEmailAndPassword...');
       final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
       final uid = credential.user!.uid;
+      print('DIAG SCREEN: signInWithEmailAndPassword successful, uid: $uid');
 
       // Fetch user info from Firebase and store in local storage
       try {
@@ -56,11 +60,18 @@ class _LoginViewState extends State<LoginView> {
       }
 
       if (mounted) {
+        print('DIAG SCREEN: Navigating to /home');
         Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
       }
     } on FirebaseAuthException catch (e) {
+      print('DIAG SCREEN: FirebaseAuthException caught: $e');
       setState(() {
         _errorMessage = e.message ?? 'Login failed';
+      });
+    } catch (e) {
+      print('DIAG SCREEN: General exception caught: $e');
+      setState(() {
+        _errorMessage = 'An error occurred: ${e.toString()}';
       });
     } finally {
       if (mounted) {
@@ -99,6 +110,7 @@ class _LoginViewState extends State<LoginView> {
             const SizedBox(height: 40),
             // Email field
             TextField(
+              key: const Key('emailField'),
               controller: _emailController,
               decoration: InputDecoration(
                 labelText: 'Email',
@@ -113,6 +125,7 @@ class _LoginViewState extends State<LoginView> {
             const SizedBox(height: 16),
             // Password field
             TextField(
+              key: const Key('passwordField'),
               controller: _passwordController,
               decoration: InputDecoration(
                 labelText: 'Password',
@@ -145,6 +158,7 @@ class _LoginViewState extends State<LoginView> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
+                key: const Key('loginButton'),
                 onPressed: _isLoading ? null : _login,
                 child: _isLoading
                     ? const CircularProgressIndicator(

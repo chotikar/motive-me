@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:motive_me/Services/firebase_user_profile_service.dart';
-import 'dart:io';
+import 'dart:typed_data';
 import 'dart:convert';
 import '../Assets/app_colors.dart';
 import '../Models/user_model.dart';
@@ -19,7 +19,8 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _bioController;
-  File? _selectedImageFile;
+  XFile? _selectedImageFile;
+  Uint8List? _selectedImageBytes;
   bool _isLoading = false;
   bool _isEncodingImage = false;
   String? _errorMessage;
@@ -92,8 +93,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
 
       if (pickedFile != null) {
+        final bytes = await pickedFile.readAsBytes();
         setState(() {
-          _selectedImageFile = File(pickedFile.path);
+          _selectedImageFile = pickedFile;
+          _selectedImageBytes = bytes;
         });
       }
     } catch (e) {
@@ -106,13 +109,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<String?> _convertImageToBase64() async {
-    if (_selectedImageFile == null) return null;
+    if (_selectedImageBytes == null) return null;
 
     setState(() => _isEncodingImage = true);
 
     try {
-      final bytes = await _selectedImageFile!.readAsBytes();
-      final base64String = base64Encode(bytes);
+      final base64String = base64Encode(_selectedImageBytes!);
       return base64String;
     } catch (e) {
       if (mounted) {
@@ -286,6 +288,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             const SizedBox(height: 8),
             TextField(
+              key: const Key('editProfileNameField'),
               controller: _nameController,
               decoration: InputDecoration(
                 hintText: 'Enter your name',
@@ -334,6 +337,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
+                key: const Key('editProfileSaveButton'),
                 onPressed: _isLoading ? null : _updateProfile,
                 child: _isLoading
                     ? const SizedBox(
@@ -364,10 +368,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Widget _buildAvatarContent() {
     // Show newly selected local file first
-    if (_selectedImageFile != null) {
+    if (_selectedImageBytes != null) {
       return ClipOval(
-        child: Image.file(
-          _selectedImageFile!,
+        child: Image.memory(
+          _selectedImageBytes!,
           fit: BoxFit.cover,
           width: 100,
           height: 100,

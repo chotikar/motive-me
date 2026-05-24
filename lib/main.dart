@@ -9,9 +9,12 @@ import 'Screen/signup_screen.dart';
 import 'Screen/profile_screen.dart';
 import 'Screen/create_skill_screen.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Guard prevents DuplicateApp error when tests call app.main() multiple times.
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  }
   runApp(const MyApp());
 }
 

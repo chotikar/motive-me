@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../Models/achievement_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -61,6 +62,9 @@ class FirebaseAchievementsService {
 
   /// Count achievements for current user
   Future<int> getAchievementCount() async {
+    if (Firebase.apps.isEmpty) {
+      throw StateError('Firebase has not been initialized');
+    }
     try {
       await NetworkService.checkOrThrow();
       final snapshot = await _db.ref('userAchievements/$_uid').get();

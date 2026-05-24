@@ -220,6 +220,7 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
               _label('Skill Name'),
               const SizedBox(height: 8),
               TextFormField(
+                key: const Key('skillNameField'),
                 controller: _nameController,
                 enabled: isCustom,
                 maxLength: 80,
@@ -245,6 +246,7 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
               _label('Reward point per time'),
               const SizedBox(height: 8),
               TextFormField(
+                key: const Key('skillRewardField'),
                 controller: _rewardController,
                 enabled: isCustom,
                 keyboardType: TextInputType.number,
@@ -271,6 +273,7 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
               _label('Goal'),
               const SizedBox(height: 8),
               TextFormField(
+                key: const Key('skillGoalField'),
                 controller: _goalController,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -322,6 +325,7 @@ class _CreateSkillScreenState extends State<CreateSkillScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
+                  key: const Key('addSkillButton'),
                   onPressed: _isLoading ? null : _addSkill,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
