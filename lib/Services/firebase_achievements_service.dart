@@ -5,10 +5,17 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'network_service.dart';
 
 class FirebaseAchievementsService {
-  static final FirebaseDatabase _db = FirebaseDatabase.instance;
+  final FirebaseDatabase _db;
+  final FirebaseAuth _auth;
+
+  FirebaseAchievementsService({
+    FirebaseDatabase? db,
+    FirebaseAuth? auth,
+  })  : _db = db ?? FirebaseDatabase.instance,
+        _auth = auth ?? FirebaseAuth.instance;
 
   String get _uid {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _auth.currentUser;
     if (user == null) {
       throw Exception('User not authenticated');
     }
@@ -62,9 +69,6 @@ class FirebaseAchievementsService {
 
   /// Count achievements for current user
   Future<int> getAchievementCount() async {
-    if (Firebase.apps.isEmpty) {
-      throw StateError('Firebase has not been initialized');
-    }
     try {
       await NetworkService.checkOrThrow();
       final snapshot = await _db.ref('userAchievements/$_uid').get();

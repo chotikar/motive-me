@@ -206,6 +206,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) setState(() => _skills = entries);
       await _checkAndUnlockAchievements(entries);
+    }, onError: (error) {
+      print('HomeScreen stream error: $error');
     });
   }
 

@@ -5,10 +5,17 @@ import '../Models/user_activity_model.dart';
 import 'network_service.dart';
 
 class FirebaseSkillService {
-  static final FirebaseDatabase _db = FirebaseDatabase.instance;
+  final FirebaseDatabase _db;
+  final FirebaseAuth _auth;
+
+  FirebaseSkillService({
+    FirebaseDatabase? db,
+    FirebaseAuth? auth,
+  })  : _db = db ?? FirebaseDatabase.instance,
+        _auth = auth ?? FirebaseAuth.instance;
 
   String get _uid {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _auth.currentUser;
     if (user == null) {
       throw Exception('User not authenticated');
     }

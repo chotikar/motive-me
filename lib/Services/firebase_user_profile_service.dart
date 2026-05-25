@@ -5,11 +5,20 @@ import '../Local/user_local.dart';
 import 'network_service.dart';
 
 class FirebaseUserProfileService {
-  static final FirebaseDatabase _db = FirebaseDatabase.instance;
-  static final UserLocal _userLocal = UserLocal();
+  final FirebaseDatabase _db;
+  final FirebaseAuth _auth;
+  final UserLocal _userLocal;
+
+  FirebaseUserProfileService({
+    FirebaseDatabase? db,
+    FirebaseAuth? auth,
+    UserLocal? userLocal,
+  })  : _db = db ?? FirebaseDatabase.instance,
+        _auth = auth ?? FirebaseAuth.instance,
+        _userLocal = userLocal ?? UserLocal();
 
   String get _uid {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _auth.currentUser;
     if (user == null) {
       throw Exception('User not authenticated');
     }
